@@ -1,0 +1,221 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: taskflow-postgres
+    environment:
+      POSTGRES_DB: taskflow
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - taskflow-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: taskflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - taskflow-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
+    container_name: taskflow-auth-service
+    environment:
+      NODE_ENV: development
+      AUTH_SERVICE_PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: postgres
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: your-super-secret-jwt-key
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - taskflow-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./backend
+      dockerfile: user-service/Dockerfile
+    container_name: taskflow-user-service
+    environment:
+      NODE_ENV: development
+      USER_SERVICE_PORT: 3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: postgres
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - taskflow-network
+
+  # Task Service
+  task-service:
+    build:
+      context: ./backend
+      dockerfile: task-service/Dockerfile
+    container_name: taskflow-task-service
+    environment:
+      NODE_ENV: development
+      TASK_SERVICE_PORT: 3003
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: postgres
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3003:3003"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - taskflow-network
+
+  # Project Service
+  project-service:
+    build:
+      context: ./backend
+      dockerfile: project-service/Dockerfile
+    container_name: taskflow-project-service
+    environment:
+      NODE_ENV: development
+      PROJECT_SERVICE_PORT: 3004
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: postgres
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3004:3004"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - taskflow-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./backend
+      dockerfile: notification-service/Dockerfile
+    container_name: taskflow-notification-service
+    environment:
+      NODE_ENV: development
+      NOTIFICATION_SERVICE_PORT: 3005
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: postgres
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3005:3005"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - taskflow-network
+
+  # Tenant Service
+  tenant-service:
+    build:
+      context: ./backend
+      dockerfile: tenant-service/Dockerfile
+    container_name: taskflow-tenant-service
+    environment:
+      NODE_ENV: development
+      TENANT_SERVICE_PORT: 3006
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: postgres
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3006:3006"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - taskflow-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: api-gateway/Dockerfile
+    container_name: taskflow-api-gateway
+    environment:
+      NODE_ENV: development
+      GATEWAY_PORT: 8000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3002
+      TASK_SERVICE_URL: http://task-service:3003
+      PROJECT_SERVICE_URL: http://project-service:3004
+      NOTIFICATION_SERVICE_URL: http://notification-service:3005
+      TENANT_SERVICE_URL: http://tenant-service:3006
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - user-service
+      - task-service
+      - project-service
+      - notification-service
+      - tenant-service
+    networks:
+      - taskflow-network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: taskflow-frontend
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+    networks:
+      - taskflow-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  taskflow-network:
+    driver: bridge 

@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Development container for running npm commands
+  dev-container:
+    image: node:18-alpine
+    container_name: taskflow-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      - NODE_ENV=development
+    networks:
+      - taskflow-network
+    command: tail -f /dev/null  # Keep container running
+
+  # Database setup container
+  db-setup:
+    image: postgres:15-alpine
+    container_name: taskflow-db-setup
+    environment:
+      POSTGRES_DB: taskflow
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/database.sql:/docker-entrypoint-initdb.d/database.sql
+    networks:
+      - taskflow-network
+    profiles:
+      - setup
+
+networks:
+  taskflow-network:
+    external: true
+
+volumes:
+  postgres_data:
+    external: true 
