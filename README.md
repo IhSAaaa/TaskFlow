@@ -166,43 +166,43 @@ make help
 
 ### Docker Setup (Recommended)
 
-Proyek ini menggunakan 2 file Docker Compose untuk environment yang berbeda:
+This project uses 2 Docker Compose files for different environments:
 
 #### Development Environment
 ```bash
-# Menggunakan Make (interactive mode)
+# Using Make (interactive mode)
 make dev-interactive
 
-# Atau Make (background mode)
+# Or Make (background mode)
 make dev
 
-# Atau manual
+# Or manual
 docker-compose -f docker-compose.dev.yml up --build
 ```
 
-#### Production Environment dengan Ngrok
+#### Production Environment with Ngrok
 ```bash
 # 1. Setup environment variables
 cp env.example .env
-# Edit .env dengan konfigurasi yang sesuai
+# Edit .env with appropriate configuration
 
-# 2. Jalankan production
+# 2. Run production
 make prod-interactive
 
-# Atau background mode
+# Or background mode
 make prod
 
-# Atau manual
+# Or manual
 docker-compose -f docker-compose.prod.yml up --build
 ```
 
-**Fitur Production:**
-- Environment production
-- Ngrok untuk expose aplikasi ke internet
+**Production Features:**
+- Production environment
+- Ngrok to expose application to internet
 - Container restart policy
-- Environment variables yang aman
+- Secure environment variables
 
-Lihat [DOCKER_SETUP.md](DOCKER_SETUP.md) untuk dokumentasi lengkap.
+See [DOCKER_SETUP.md](DOCKER_SETUP.md) for complete documentation.
 
 ### Alternative Setup Methods
 
@@ -473,15 +473,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📚 Documentation
 
-Semua dokumentasi telah digabungkan dalam file README.md ini untuk kemudahan akses. Dokumentasi ini mencakup:
+All documentation has been consolidated into this README.md file for easy access. This documentation includes:
 
-- **Quick Start Guide** - Panduan cepat untuk memulai development dan production
-- **Docker Setup Guide** - Setup lengkap untuk Docker development dan production dengan ngrok
-- **Development Guide** - Panduan development dengan hot reload dan troubleshooting
-- **Migration Guide** - Panduan migrasi dari shell scripts ke Makefile
-- **Complete API Documentation** - Dokumentasi lengkap untuk semua endpoints
+- **Quick Start Guide** - Quick guide to start development and production
+- **Docker Setup Guide** - Complete setup for Docker development and production with ngrok
+- **Development Guide** - Development guide with hot reload and troubleshooting
+- **Migration Guide** - Migration guide from shell scripts to Makefile
+- **Complete API Documentation** - Complete documentation for all endpoints
 
-Semua informasi yang diperlukan untuk setup, development, dan deployment tersedia dalam satu file README.md ini.
+All information needed for setup, development, and deployment is available in this single README.md file.
 
 ---
 
@@ -557,85 +557,85 @@ docker-compose -f docker-compose.prod.yml up --build
 
 ## 🐳 Docker Setup Guide
 
-Proyek ini menggunakan 2 file Docker Compose untuk environment yang berbeda:
+This project uses 2 Docker Compose files for different environments:
 
-### File Docker Compose
+### Docker Compose Files
 
-1. **`docker-compose.dev.yml`** - Untuk development
-2. **`docker-compose.prod.yml`** - Untuk production dengan ngrok
+1. **`docker-compose.dev.yml`** - For development
+2. **`docker-compose.prod.yml`** - For production with ngrok
 
 ### Development Setup
 
-Untuk menjalankan aplikasi dalam mode development:
+To run the application in development mode:
 
 ```bash
-# Build dan jalankan semua services
+# Build and run all services
 docker-compose -f docker-compose.dev.yml up --build
 
-# Jalankan di background
+# Run in background
 docker-compose -f docker-compose.dev.yml up -d --build
 
-# Hentikan services
+# Stop services
 docker-compose -f docker-compose.dev.yml down
 ```
 
-**Fitur Development:**
-- Hot reload untuk frontend
-- Volume mounting untuk source code
-- Environment development
-- Container names dengan suffix `-dev`
+**Development Features:**
+- Hot reload for frontend
+- Volume mounting for source code
+- Development environment
+- Container names with `-dev` suffix
 
 ### Production Setup
 
-Untuk menjalankan aplikasi dalam mode production dengan ngrok:
+To run the application in production mode with ngrok:
 
 #### 1. Setup Environment Variables
 
-Copy file `env.example` ke `.env` dan isi dengan nilai yang sesuai:
+Copy `env.example` file to `.env` and fill with appropriate values:
 
 ```bash
 cp env.example .env
 ```
 
-Edit file `.env` dan isi dengan nilai yang sesuai:
-- `POSTGRES_PASSWORD`: Password untuk database PostgreSQL
-- `JWT_SECRET`: Secret key untuk JWT
-- `NGROK_AUTHTOKEN`: Token autentikasi ngrok (dapatkan dari https://ngrok.com)
-- `NGROK_REGION`: Region ngrok (default: ap)
+Edit `.env` file and fill with appropriate values:
+- `POSTGRES_PASSWORD`: Password for PostgreSQL database
+- `JWT_SECRET`: Secret key for JWT
+- `NGROK_AUTHTOKEN`: Ngrok authentication token (get from https://ngrok.com)
+- `NGROK_REGION`: Ngrok region (default: ap)
 
-#### 2. Jalankan Production
+#### 2. Run Production
 
 ```bash
-# Build dan jalankan semua services
+# Build and run all services
 docker-compose -f docker-compose.prod.yml up --build
 
-# Jalankan di background
+# Run in background
 docker-compose -f docker-compose.prod.yml up -d --build
 
-# Hentikan services
+# Stop services
 docker-compose -f docker-compose.prod.yml down
 ```
 
-#### 3. Akses Aplikasi
+#### 3. Access Application
 
-Setelah aplikasi berjalan, Anda dapat mengakses:
+After the application is running, you can access:
 
 - **Frontend**: http://localhost:3000
 - **API Gateway**: http://localhost:8000
 - **Ngrok Web Interface**: http://localhost:4040
-- **Public URL**: Cek di ngrok web interface untuk mendapatkan URL publik
+- **Public URL**: Check ngrok web interface to get public URL
 
 #### 4. Ngrok Configuration
 
-Ngrok akan otomatis expose frontend aplikasi ke internet. Untuk melihat URL publik:
+Ngrok will automatically expose the frontend application to the internet. To see the public URL:
 
-1. Buka http://localhost:24040
-2. Atau cek logs ngrok container:
+1. Open http://localhost:24040
+2. Or check ngrok container logs:
    ```bash
    docker logs taskflow-ngrok
    ```
 
-### Services yang Tersedia
+### Available Services
 
 #### Development
 - PostgreSQL (port 25432)
@@ -650,21 +650,21 @@ Ngrok akan otomatis expose frontend aplikasi ke internet. Untuk melihat URL publ
 - Frontend (port 23000)
 
 #### Production
-- Semua services di atas
-- Ngrok (port 24040 untuk web interface)
+- All services above
+- Ngrok (port 24040 for web interface)
 
 ### Troubleshooting
 
 #### Port Conflicts
-Jika ada port yang sudah digunakan, edit file docker-compose yang sesuai dan ubah port mapping.
+If there are ports already in use, edit the appropriate docker-compose file and change port mapping.
 
 #### Ngrok Issues
-1. Pastikan `NGROK_AUTHTOKEN` sudah diset dengan benar
-2. Cek logs ngrok: `docker logs taskflow-ngrok`
-3. Pastikan frontend sudah running sebelum ngrok start
+1. Make sure `NGROK_AUTHTOKEN` is set correctly
+2. Check ngrok logs: `docker logs taskflow-ngrok`
+3. Make sure frontend is running before ngrok starts
 
 #### Database Issues
-1. Hapus volume jika ada masalah dengan database:
+1. Remove volume if there are database issues:
    ```bash
    docker-compose -f docker-compose.prod.yml down -v
    ```
@@ -675,11 +675,11 @@ Jika ada port yang sudah digunakan, edit file docker-compose yang sesuai dan uba
 
 ### Security Notes
 
-1. **Jangan gunakan password default** di production
-2. **Gunakan JWT_SECRET yang kuat** di production
-3. **Backup database** secara berkala
-4. **Monitor logs** untuk aktivitas mencurigakan
-5. **Update dependencies** secara berkala
+1. **Don't use default passwords** in production
+2. **Use strong JWT_SECRET** in production
+3. **Backup database** regularly
+4. **Monitor logs** for suspicious activity
+5. **Update dependencies** regularly
 
 ---
 
@@ -687,7 +687,7 @@ Jika ada port yang sudah digunakan, edit file docker-compose yang sesuai dan uba
 
 ### Hot Reload Setup
 
-TaskFlow sekarang mendukung hot reload untuk development frontend, sehingga Anda tidak perlu build ulang container setiap kali ada perubahan kode.
+TaskFlow now supports hot reload for frontend development, so you don't need to rebuild the container every time there's a code change.
 
 ### Quick Start
 
@@ -729,30 +729,30 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 #### Development vs Production
 
 **Development Mode (`docker-compose.dev.yml`):**
-- Menggunakan `Dockerfile.dev` untuk frontend
-- Volume mounting: `./frontend:/app` untuk hot reload
-- Vite dev server dengan `--host 0.0.0.0` untuk akses dari container
-- Hot reload otomatis saat ada perubahan file
+- Uses `Dockerfile.dev` for frontend
+- Volume mounting: `./frontend:/app` for hot reload
+- Vite dev server with `--host 0.0.0.0` for container access
+- Automatic hot reload when files change
 
 **Production Mode (`docker-compose.prod.yml`):**
-- Menggunakan `Dockerfile` untuk frontend
-- Build static files dengan nginx
-- Tidak ada hot reload
+- Uses `Dockerfile` for frontend
+- Build static files with nginx
+- No hot reload
 
 #### Volume Mounting
 
 ```yaml
 volumes:
-  - ./frontend:/app          # Mount source code untuk hot reload
-  - /app/node_modules        # Preserve node_modules di container
+  - ./frontend:/app          # Mount source code for hot reload
+  - /app/node_modules        # Preserve node_modules in container
 ```
 
 #### Vite Configuration
 
-Vite dev server dikonfigurasi untuk:
-- Listen pada `0.0.0.0:3000` (accessible dari host)
-- Hot reload enabled secara default
-- File watching untuk perubahan kode
+Vite dev server is configured to:
+- Listen on `0.0.0.0:3000` (accessible from host)
+- Hot reload enabled by default
+- File watching for code changes
 
 ### Development Workflow
 
@@ -761,15 +761,15 @@ Vite dev server dikonfigurasi untuk:
    make dev
    ```
 
-2. **Edit kode frontend:**
-   - Buka `frontend/src/` di editor Anda
-   - Lakukan perubahan pada file React/TypeScript
-   - Simpan file
+2. **Edit frontend code:**
+   - Open `frontend/src/` in your editor
+   - Make changes to React/TypeScript files
+   - Save file
 
-3. **Hot reload otomatis:**
-   - Browser akan otomatis refresh
-   - Tidak perlu restart container
-   - Tidak perlu build ulang
+3. **Automatic hot reload:**
+   - Browser will automatically refresh
+   - No need to restart container
+   - No need to rebuild
 
 4. **Stop development:**
    ```bash
@@ -778,27 +778,27 @@ Vite dev server dikonfigurasi untuk:
 
 ### Troubleshooting
 
-#### Frontend tidak reload otomatis
-1. Pastikan volume mounting berfungsi:
+#### Frontend not reloading automatically
+1. Make sure volume mounting is working:
    ```bash
    docker exec taskflow-frontend-dev ls -la /app/src
    ```
 
-2. Cek logs frontend:
+2. Check frontend logs:
    ```bash
    docker-compose -f docker-compose.dev.yml logs frontend-dev
    ```
 
-#### Port sudah digunakan
-1. Stop container yang menggunakan port 3000:
+#### Port already in use
+1. Stop container using port 3000:
    ```bash
    docker ps | grep 3000
    docker stop <container-id>
    ```
 
-2. Atau gunakan port berbeda di `docker-compose.dev.yml`
+2. Or use different port in `docker-compose.dev.yml`
 
-#### Node modules tidak terinstall
+#### Node modules not installed
 1. Rebuild container:
    ```bash
    docker-compose -f docker-compose.dev.yml down
@@ -821,18 +821,18 @@ Vite dev server dikonfigurasi untuk:
 
 ### Environment Variables
 
-Development environment menggunakan environment variables yang sama dengan production, dengan beberapa penyesuaian:
+Development environment uses the same environment variables as production, with some adjustments:
 
-- `NODE_ENV=development` untuk semua services
-- `VITE_API_URL=http://localhost:8000` untuk frontend
-- Hot reload enabled untuk frontend
+- `NODE_ENV=development` for all services
+- `VITE_API_URL=http://localhost:8000` for frontend
+- Hot reload enabled for frontend
 
 ### Tips
 
-1. **Gunakan browser dev tools** untuk debugging
-2. **Monitor logs** jika ada error
-3. **Restart container** jika hot reload tidak berfungsi
-4. **Commit changes** sebelum restart untuk menghindari kehilangan kode
+1. **Use browser dev tools** for debugging
+2. **Monitor logs** if there are errors
+3. **Restart container** if hot reload doesn't work
+4. **Commit changes** before restart to avoid losing code
 
 ---
 
