@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - "25432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -21,7 +21,7 @@ services:
     image: redis:7-alpine
     container_name: taskflow-redis-dev
     ports:
-      - "6379:6379"
+      - "26379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -193,7 +193,7 @@ services:
       NOTIFICATION_SERVICE_URL: http://notification-service:3005
       TENANT_SERVICE_URL: http://tenant-service:3006
     ports:
-      - "8000:8000"
+      - "28000:8000"
     depends_on:
       - auth-service
       - user-service
@@ -211,9 +211,9 @@ services:
       dockerfile: Dockerfile.dev
     container_name: taskflow-frontend-dev
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: http://localhost:28000
     ports:
-      - "3000:3000"
+      - "23000:3000"
     volumes:
       # Mount source code for hot reload
       - ./frontend:/app

@@ -16,6 +16,15 @@
 - **Enhanced Makefile** with emoji formatting and better user experience
 - **Unified command interface** through Makefile for all operations
 
+### 🔧 Port Configuration Update
+- **PostgreSQL**: Changed from 5432 to 25432
+- **Redis**: Changed from 6379 to 26379
+- **Frontend**: Changed from 3000 to 23000
+- **API Gateway**: Changed from 8000 to 28000
+- **Ngrok**: Changed from 4040 to 24040
+- **Updated all documentation** to reflect new port mappings
+- **Updated environment variables** for frontend API URL
+
 ### 📊 Makefile Evolution Analysis
 - **Total Commands**: 47 commands across 12 categories
 - **Development Commands**: 8 commands (dev, stop, logs, etc.)

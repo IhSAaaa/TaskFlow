@@ -51,8 +51,8 @@ dev: ## Start development environment with hot reload
 	@echo "$(BLUE)[INFO]$(NC) Checking frontend status..."
 	@if docker ps | grep -q "taskflow-frontend-dev"; then \
 		echo "$(GREEN)[SUCCESS]$(NC) Frontend development server is running!"; \
-		echo "$(GREEN)🌐 Frontend:$(NC) http://localhost:3000"; \
-		echo "$(GREEN)🔌 API Gateway:$(NC) http://localhost:8000"; \
+		echo "$(GREEN)🌐 Frontend:$(NC) http://localhost:23000"; \
+		echo "$(GREEN)🔌 API Gateway:$(NC) http://localhost:28000"; \
 		echo ""; \
 		echo "$(BLUE)📝 Development mode enabled with hot reload!$(NC)"; \
 		echo "$(BLUE)💡 Any changes to frontend code will automatically reload.$(NC)"; \
@@ -116,9 +116,9 @@ prod: ## Start production environment with ngrok
 	@echo "$(BLUE)[INFO]$(NC) Building and starting production environment..."
 	@$(DOCKER_COMPOSE_PROD) up --build -d
 	@echo "$(GREEN)[SUCCESS]$(NC) Production environment started!"
-	@echo "$(GREEN)🌐 Frontend:$(NC) http://localhost:3000"
-	@echo "$(GREEN)🔌 API Gateway:$(NC) http://localhost:8000"
-	@echo "$(GREEN)🌍 Ngrok Web Interface:$(NC) http://localhost:4040"
+	@echo "$(GREEN)🌐 Frontend:$(NC) http://localhost:23000"
+	@echo "$(GREEN)🔌 API Gateway:$(NC) http://localhost:28000"
+	@echo "$(GREEN)🌍 Ngrok Web Interface:$(NC) http://localhost:24040"
 	@echo "$(BLUE)[INFO]$(NC) Check ngrok web interface for public URL"
 
 .PHONY: prod-stop

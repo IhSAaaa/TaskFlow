@@ -21,7 +21,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api': {
-        target: 'http://api-gateway:8000',
+        target: 'http://api-gateway:28000',
         changeOrigin: true,
       },
     },

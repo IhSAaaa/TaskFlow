@@ -343,7 +343,7 @@ npm run lint             # Lint code
 ### Health Checks
 ```bash
 # Check API Gateway
-curl http://localhost:8000/health
+curl http://localhost:28000/health
 
 # Check individual services
 curl http://localhost:3001/health  # Auth Service
@@ -357,12 +357,12 @@ curl http://localhost:3006/health  # Tenant Service
 ### Sample API Calls
 ```bash
 # Create a tenant
-curl -X POST http://localhost:8000/api/tenants \
+curl -X POST http://localhost:28000/api/tenants \
   -H "Content-Type: application/json" \
   -d '{"name": "Test Company", "domain": "test.com"}'
 
 # Register a user
-curl -X POST http://localhost:8000/api/auth/register \
+curl -X POST http://localhost:28000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email": "user@test.com", "password": "password123", "firstName": "John", "lastName": "Doe"}'
 ```
@@ -508,8 +508,8 @@ docker-compose -f docker-compose.dev.yml up --build
 ```
 
 #### 3. Access Application
-- **Frontend**: http://localhost:3000
-- **API Gateway**: http://localhost:8000
+- **Frontend**: http://localhost:23000
+- **API Gateway**: http://localhost:28000
 
 ### Production Environment dengan Ngrok
 
@@ -548,9 +548,9 @@ docker-compose -f docker-compose.prod.yml up --build
 ```
 
 #### 4. Access Application
-- **Frontend**: http://localhost:3000
-- **API Gateway**: http://localhost:8000
-- **Ngrok Web Interface**: http://localhost:4040
+- **Frontend**: http://localhost:23000
+- **API Gateway**: http://localhost:28000
+- **Ngrok Web Interface**: http://localhost:24040
 - **Public URL**: Check ngrok web interface
 
 ---
@@ -629,7 +629,7 @@ Setelah aplikasi berjalan, Anda dapat mengakses:
 
 Ngrok akan otomatis expose frontend aplikasi ke internet. Untuk melihat URL publik:
 
-1. Buka http://localhost:4040
+1. Buka http://localhost:24040
 2. Atau cek logs ngrok container:
    ```bash
    docker logs taskflow-ngrok
@@ -638,20 +638,20 @@ Ngrok akan otomatis expose frontend aplikasi ke internet. Untuk melihat URL publ
 ### Services yang Tersedia
 
 #### Development
-- PostgreSQL (port 5432)
-- Redis (port 6379)
+- PostgreSQL (port 25432)
+- Redis (port 26379)
 - Auth Service (port 3001)
 - User Service (port 3002)
 - Task Service (port 3003)
 - Project Service (port 3004)
 - Notification Service (port 3005)
 - Tenant Service (port 3006)
-- API Gateway (port 8000)
-- Frontend (port 3000)
+- API Gateway (port 28000)
+- Frontend (port 23000)
 
 #### Production
 - Semua services di atas
-- Ngrok (port 4040 untuk web interface)
+- Ngrok (port 24040 untuk web interface)
 
 ### Troubleshooting
 
