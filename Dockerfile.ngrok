@@ -1,0 +1,7 @@
+FROM ngrok/ngrok:2.3.40
+
+# Copy the ngrok configuration
+COPY ngrok.yml /etc/ngrok.yml
+
+# Set the entrypoint to use the config file
+ENTRYPOINT ["ngrok", "start", "--config", "/etc/ngrok.yml", "frontend"] 

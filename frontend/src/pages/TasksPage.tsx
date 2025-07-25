@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Filter, Search, Edit, Trash2, Eye, Calendar, User, Tag } from 'lucide-react';
+import { Plus, Filter, Search, Edit, Trash2, Calendar, User, Tag } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ApiService, Task, TaskFilter, CreateTaskRequest } from '../services/api';
 import toast from 'react-hot-toast';

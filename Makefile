@@ -51,8 +51,8 @@ dev: ## Start development environment with hot reload
 	@echo "$(BLUE)[INFO]$(NC) Checking frontend status..."
 	@if docker ps | grep -q "taskflow-frontend-dev"; then \
 		echo "$(GREEN)[SUCCESS]$(NC) Frontend development server is running!"; \
-		echo "$(GREEN)🌐 Frontend:$(NC) http://localhost:23000"; \
-		echo "$(GREEN)🔌 API Gateway:$(NC) http://localhost:28000"; \
+		echo "$(GREEN)🌐 Frontend:$(NC) http://localhost:3000"; \
+		echo "$(GREEN)🔌 API Gateway:$(NC) http://localhost:8000"; \
 		echo ""; \
 		echo "$(BLUE)📝 Development mode enabled with hot reload!$(NC)"; \
 		echo "$(BLUE)💡 Any changes to frontend code will automatically reload.$(NC)"; \
@@ -80,7 +80,7 @@ logs: ## View development logs
 .PHONY: logs-frontend
 logs-frontend: ## View frontend logs only
 	@echo "$(BLUE)[INFO]$(NC) Viewing frontend logs..."
-	@$(DOCKER_COMPOSE_DEV) logs -f frontend-dev
+	@$(DOCKER_COMPOSE_DEV) logs -f frontend
 
 .PHONY: logs-backend
 logs-backend: ## View backend logs only
@@ -98,28 +98,73 @@ prod: ## Start production environment with ngrok
 		echo "$(RED)[ERROR]$(NC) Docker is not running. Please start Docker first."; \
 		exit 1; \
 	fi
+	@echo "$(BLUE)[INFO]$(NC) Checking environment configuration..."
 	@if [ ! -f .env ]; then \
-		echo "$(RED)[ERROR]$(NC) .env file not found!"; \
-		echo "$(YELLOW)[INFO]$(NC) Please copy env.example to .env and configure your environment variables:"; \
-		echo "   cp env.example .env"; \
-		echo "   # Then edit .env with your configuration"; \
-		exit 1; \
+		echo "$(YELLOW)[INFO]$(NC) .env file not found, creating from template..."; \
+		if [ -f env.example ]; then \
+			cp env.example .env; \
+			if [ -f .env ]; then \
+				echo "$(GREEN)[SUCCESS]$(NC) Created .env file from template"; \
+				echo "$(YELLOW)[WARNING]$(NC) Using default values. For production, please edit .env file with your configuration:"; \
+				echo "   - POSTGRES_PASSWORD: Set a secure database password"; \
+				echo "   - JWT_SECRET: Set a strong JWT secret"; \
+				echo "   - NGROK_AUTHTOKEN: Get from https://ngrok.com"; \
+				echo "   - NGROK_REGION: Set your preferred region (us, eu, ap, au, sa, jp, in)"; \
+				echo "     For Indonesia, use 'ap' (Asia Pacific) for best performance"; \
+				echo ""; \
+				echo "$(BLUE)[INFO]$(NC) Starting with default configuration..."; \
+			else \
+				echo "$(RED)[ERROR]$(NC) Failed to create .env file from template"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "$(RED)[ERROR]$(NC) env.example file not found!"; \
+			echo "$(YELLOW)[INFO]$(NC) Please create env.example file first"; \
+			exit 1; \
+		fi; \
 	fi
 	@echo "$(BLUE)[INFO]$(NC) Validating environment variables..."
-	@source .env; \
-	if [ -z "$$NGROK_AUTHTOKEN" ]; then \
-		echo "$(RED)[ERROR]$(NC) NGROK_AUTHTOKEN is not set in .env file!"; \
-		echo "$(YELLOW)[INFO]$(NC) Please get your ngrok authtoken from https://ngrok.com and add it to .env"; \
+	@if [ -f .env ] && [ -r .env ]; then \
+		echo "$(BLUE)[INFO]$(NC) Loading environment variables from .env file..."; \
+		export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs); \
+		if [ -z "$$NGROK_AUTHTOKEN" ]; then \
+			echo "$(YELLOW)[WARNING]$(NC) NGROK_AUTHTOKEN is not set, ngrok will not work"; \
+			echo "$(YELLOW)[INFO]$(NC) To enable ngrok, get your authtoken from https://ngrok.com and add it to .env"; \
+			echo "$(BLUE)[INFO]$(NC) Continuing without ngrok..."; \
+		fi; \
+		if [ -z "$$POSTGRES_PASSWORD" ]; then \
+			echo "$(YELLOW)[WARNING]$(NC) POSTGRES_PASSWORD is not set, using default password"; \
+		fi; \
+		if [ -z "$$JWT_SECRET" ]; then \
+			echo "$(YELLOW)[WARNING]$(NC) JWT_SECRET is not set, using default secret"; \
+		fi; \
+	else \
+		echo "$(RED)[ERROR]$(NC) .env file not found or not readable!"; \
+		echo "$(BLUE)[INFO]$(NC) Checking file status..."; \
+		ls -la .env 2>/dev/null || echo "$(YELLOW)[INFO]$(NC) .env file does not exist"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)[SUCCESS]$(NC) Environment variables validated"
+	@echo "$(GREEN)[SUCCESS]$(NC) Environment configuration validated"
 	@echo "$(BLUE)[INFO]$(NC) Building and starting production environment..."
 	@$(DOCKER_COMPOSE_PROD) up --build -d
 	@echo "$(GREEN)[SUCCESS]$(NC) Production environment started!"
 	@echo "$(GREEN)🌐 Frontend:$(NC) http://localhost:23000"
 	@echo "$(GREEN)🔌 API Gateway:$(NC) http://localhost:28000"
-	@echo "$(GREEN)🌍 Ngrok Web Interface:$(NC) http://localhost:24040"
-	@echo "$(BLUE)[INFO]$(NC) Check ngrok web interface for public URL"
+	@if [ -f .env ] && [ -r .env ]; then \
+		export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs); \
+		if [ -n "$$NGROK_AUTHTOKEN" ]; then \
+			echo "$(BLUE)[INFO]$(NC) Starting ngrok with authtoken..."; \
+			$(DOCKER_COMPOSE_PROD) --profile ngrok up -d ngrok; \
+			echo "$(GREEN)🌍 Ngrok Web Interface:$(NC) http://localhost:24040"; \
+			echo "$(BLUE)[INFO]$(NC) Check ngrok web interface for public URL"; \
+		else \
+			echo "$(YELLOW)[INFO]$(NC) Ngrok not configured. To enable, add NGROK_AUTHTOKEN to .env file"; \
+			echo "$(YELLOW)[INFO]$(NC) Then run: make prod-ngrok"; \
+		fi; \
+	else \
+		echo "$(YELLOW)[INFO]$(NC) Ngrok not configured. To enable, add NGROK_AUTHTOKEN to .env file"; \
+		echo "$(YELLOW)[INFO]$(NC) Then run: make prod-ngrok"; \
+	fi
 
 .PHONY: prod-stop
 prod-stop: ## Stop production environment
@@ -132,8 +177,33 @@ prod-logs: ## View production logs
 	@echo "$(BLUE)[INFO]$(NC) Viewing production logs..."
 	@$(DOCKER_COMPOSE_PROD) logs -f
 
+.PHONY: prod-ngrok
+prod-ngrok: ## Start ngrok for production environment
+	@echo "$(BLUE)[INFO]$(NC) Starting ngrok for production environment..."
+	@if [ ! -f .env ]; then \
+		echo "$(RED)[ERROR]$(NC) .env file not found. Run 'make prod' first."; \
+		exit 1; \
+	fi
+	@if [ -f .env ] && [ -r .env ]; then \
+		export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs); \
+		if [ -z "$$NGROK_AUTHTOKEN" ]; then \
+			echo "$(RED)[ERROR]$(NC) NGROK_AUTHTOKEN is not set in .env file!"; \
+			echo "$(YELLOW)[INFO]$(NC) Please get your ngrok authtoken from https://ngrok.com and add it to .env"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(RED)[ERROR]$(NC) .env file not found or not readable!"; \
+		echo "$(BLUE)[INFO]$(NC) Checking file status..."; \
+		ls -la .env 2>/dev/null || echo "$(YELLOW)[INFO]$(NC) .env file does not exist"; \
+		exit 1; \
+	fi
+	@$(DOCKER_COMPOSE_PROD) --profile ngrok up -d ngrok
+	@echo "$(GREEN)[SUCCESS]$(NC) Ngrok started!"
+	@echo "$(GREEN)🌍 Ngrok Web Interface:$(NC) http://localhost:24040"
+	@echo "$(BLUE)[INFO]$(NC) Check ngrok web interface for public URL"
+
 .PHONY: dev-interactive
-dev-interactive: ## Start development environment in interactive mode (like docker-dev.sh)
+dev-interactive: ## Start development environment in interactive mode
 	@echo "🚀 Starting TaskFlow Development Environment..."
 	@if ! docker info > /dev/null 2>&1; then \
 		echo "❌ Docker is not running. Please start Docker first."; \
@@ -143,153 +213,123 @@ dev-interactive: ## Start development environment in interactive mode (like dock
 	@$(DOCKER_COMPOSE_DEV) up --build
 
 .PHONY: prod-interactive
-prod-interactive: ## Start production environment in interactive mode (like docker-prod.sh)
+prod-interactive: ## Start production environment in interactive mode
 	@echo "🚀 Starting TaskFlow Production Environment..."
 	@if ! docker info > /dev/null 2>&1; then \
 		echo "❌ Docker is not running. Please start Docker first."; \
 		exit 1; \
 	fi
+	@echo "📝 Checking environment configuration..."
 	@if [ ! -f .env ]; then \
-		echo "❌ .env file not found!"; \
-		echo "📝 Please copy env.example to .env and configure your environment variables:"; \
-		echo "   cp env.example .env"; \
-		echo "   # Then edit .env with your configuration"; \
+		echo "📝 .env file not found, creating from template..."; \
+		if [ -f env.example ]; then \
+			cp env.example .env; \
+			if [ -f .env ]; then \
+				echo "✅ Created .env file from template"; \
+				echo "⚠️  Using default values. For production, please edit .env file with your configuration:"; \
+				echo "   - POSTGRES_PASSWORD: Set a secure database password"; \
+				echo "   - JWT_SECRET: Set a strong JWT secret"; \
+				echo "   - NGROK_AUTHTOKEN: Get from https://ngrok.com"; \
+				echo "   - NGROK_REGION: Set your preferred region (us, eu, ap, au, sa, jp, in)"; \
+				echo "     For Indonesia, use 'ap' (Asia Pacific) for best performance"; \
+				echo ""; \
+				echo "📦 Starting with default configuration..."; \
+			else \
+				echo "❌ Failed to create .env file from template"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "❌ env.example file not found!"; \
+			echo "📝 Please create env.example file first"; \
+			exit 1; \
+		fi; \
+	fi
+	@if [ -f .env ] && [ -r .env ]; then \
+		echo "📝 Loading environment variables from .env file..."; \
+		export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs); \
+		if [ -z "$$NGROK_AUTHTOKEN" ]; then \
+			echo "⚠️  NGROK_AUTHTOKEN is not set, ngrok will not work"; \
+			echo "📝 To enable ngrok, get your authtoken from https://ngrok.com and add it to .env"; \
+			echo "📦 Continuing without ngrok..."; \
+		fi; \
+		if [ -z "$$POSTGRES_PASSWORD" ]; then \
+			echo "⚠️  POSTGRES_PASSWORD is not set, using default password"; \
+		fi; \
+		if [ -z "$$JWT_SECRET" ]; then \
+			echo "⚠️  JWT_SECRET is not set, using default secret"; \
+		fi; \
+	else \
+		echo "❌ .env file not found or not readable!"; \
+		echo "📝 Checking file status..."; \
+		ls -la .env 2>/dev/null || echo "📝 .env file does not exist"; \
 		exit 1; \
 	fi
-	@source .env; \
-	if [ -z "$$NGROK_AUTHTOKEN" ]; then \
-		echo "❌ NGROK_AUTHTOKEN is not set in .env file!"; \
-		echo "📝 Please get your ngrok authtoken from https://ngrok.com and add it to .env"; \
-		exit 1; \
-	fi
-	@if [ -z "$$POSTGRES_PASSWORD" ]; then \
-		echo "⚠️  POSTGRES_PASSWORD is not set, using default password"; \
-	fi
-	@if [ -z "$$JWT_SECRET" ]; then \
-		echo "⚠️  JWT_SECRET is not set, using default secret"; \
-	fi
-	@echo "✅ Environment variables validated"
+	@echo "✅ Environment configuration validated"
 	@echo "📦 Building and starting production services..."
 	@$(DOCKER_COMPOSE_PROD) up --build
+	@if [ -f .env ] && . .env && [ -n "$$NGROK_AUTHTOKEN" ]; then \
+		echo "🌍 Ngrok will be available at: http://localhost:24040"; \
+	else \
+		echo "📝 Ngrok not configured. To enable, add NGROK_AUTHTOKEN to .env file"; \
+	fi
 
 # =============================================================================
 # BUILD COMMANDS
 # =============================================================================
 
 .PHONY: build
-build: ## Build all services
-	@echo "$(BLUE)[INFO]$(NC) Building all services..."
-	@npm run build
+build: ## Build all services using Docker
+	@echo "$(BLUE)[INFO]$(NC) Building all services using Docker..."
+	@$(DOCKER_COMPOSE_DEV) build
 	@echo "$(GREEN)[SUCCESS]$(NC) All services built successfully!"
 
 .PHONY: build-frontend
-build-frontend: ## Build frontend only
-	@echo "$(BLUE)[INFO]$(NC) Building frontend..."
-	@cd frontend && npm run build
+build-frontend: ## Build frontend using Docker
+	@echo "$(BLUE)[INFO]$(NC) Building frontend using Docker..."
+	@$(DOCKER_COMPOSE_DEV) build frontend-dev
 	@echo "$(GREEN)[SUCCESS]$(NC) Frontend built successfully!"
 
 .PHONY: build-backend
-build-backend: ## Build backend only
-	@echo "$(BLUE)[INFO]$(NC) Building backend..."
-	@cd backend && npm run build:all
+build-backend: ## Build backend using Docker
+	@echo "$(BLUE)[INFO]$(NC) Building backend using Docker..."
+	@$(DOCKER_COMPOSE_DEV) build api-gateway auth-service user-service task-service project-service notification-service tenant-service
 	@echo "$(GREEN)[SUCCESS]$(NC) Backend built successfully!"
 
-.PHONY: build-docker
-build-docker: ## Build Docker images
-	@echo "$(BLUE)[INFO]$(NC) Building Docker images..."
-	@$(DOCKER_COMPOSE) build
-	@echo "$(GREEN)[SUCCESS]$(NC) Docker images built successfully!"
-
-# =============================================================================
-# INSTALLATION COMMANDS
-# =============================================================================
-
 .PHONY: install
-install: ## Install all dependencies
-	@echo "$(BLUE)[INFO]$(NC) Installing all dependencies..."
-	@npm run install:all
+install: ## Install dependencies (rebuild with no cache)
+	@echo "$(BLUE)[INFO]$(NC) Installing dependencies using Docker..."
+	@$(DOCKER_COMPOSE_DEV) build --no-cache
 	@echo "$(GREEN)[SUCCESS]$(NC) All dependencies installed successfully!"
-
-.PHONY: install-frontend
-install-frontend: ## Install frontend dependencies
-	@echo "$(BLUE)[INFO]$(NC) Installing frontend dependencies..."
-	@cd frontend && npm install
-	@echo "$(GREEN)[SUCCESS]$(NC) Frontend dependencies installed!"
-
-.PHONY: install-backend
-install-backend: ## Install backend dependencies
-	@echo "$(BLUE)[INFO]$(NC) Installing backend dependencies..."
-	@cd backend && npm run install:all
-	@echo "$(GREEN)[SUCCESS]$(NC) Backend dependencies installed!"
-
-# =============================================================================
-# TESTING COMMANDS
-# =============================================================================
-
-.PHONY: test
-test: ## Run all tests
-	@echo "$(BLUE)[INFO]$(NC) Running all tests..."
-	@npm run test
-	@echo "$(GREEN)[SUCCESS]$(NC) All tests completed!"
-
-.PHONY: test-frontend
-test-frontend: ## Run frontend tests
-	@echo "$(BLUE)[INFO]$(NC) Running frontend tests..."
-	@cd frontend && npm test
-	@echo "$(GREEN)[SUCCESS]$(NC) Frontend tests completed!"
-
-.PHONY: test-backend
-test-backend: ## Run backend tests
-	@echo "$(BLUE)[INFO]$(NC) Running backend tests..."
-	@cd backend && npm run test:all
-	@echo "$(GREEN)[SUCCESS]$(NC) Backend tests completed!"
-
-.PHONY: test-watch
-test-watch: ## Run tests in watch mode
-	@echo "$(BLUE)[INFO]$(NC) Running tests in watch mode..."
-	@npm run test -- --watch
 
 # =============================================================================
 # DATABASE COMMANDS
 # =============================================================================
 
 .PHONY: db-setup
-db-setup: ## Setup database
-	@echo "$(BLUE)[INFO]$(NC) Setting up database..."
-	@if command -v psql > /dev/null 2>&1; then \
-		if psql -lqt | cut -d \| -f 1 | grep -qw taskflow; then \
-			echo "$(YELLOW)[WARNING]$(NC) Database 'taskflow' already exists"; \
-			read -p "Do you want to recreate it? (y/N): " -n 1 -r; \
-			echo; \
-			if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-				dropdb taskflow; \
-				createdb taskflow; \
-				echo "$(GREEN)[SUCCESS]$(NC) Database 'taskflow' recreated"; \
-			fi; \
-		else \
-			createdb taskflow; \
-			echo "$(GREEN)[SUCCESS]$(NC) Database 'taskflow' created"; \
-		fi; \
-		echo "$(BLUE)[INFO]$(NC) Running database schema..."; \
-		psql -d taskflow -f backend/database/schema.sql; \
-		echo "$(GREEN)[SUCCESS]$(NC) Database schema applied successfully"; \
-	else \
-		echo "$(YELLOW)[WARNING]$(NC) PostgreSQL not available, skipping database setup"; \
-		echo "$(YELLOW)[WARNING]$(NC) Please run the database schema manually: psql -d taskflow -f backend/database/schema.sql"; \
-	fi
+db-setup: ## Setup database using Docker
+	@echo "$(BLUE)[INFO]$(NC) Setting up database using Docker..."
+	@$(DOCKER_COMPOSE_DEV) up -d postgres
+	@echo "$(BLUE)[INFO]$(NC) Waiting for database to be ready..."
+	@sleep 5
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -c "SELECT 1;" 2>/dev/null || \
+		$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -c "CREATE DATABASE taskflow;"
+	@echo "$(BLUE)[INFO]$(NC) Running database schema..."
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -f /docker-entrypoint-initdb.d/schema.sql
+	@echo "$(GREEN)[SUCCESS]$(NC) Database setup completed!"
 
 .PHONY: db-reset
-db-reset: ## Reset database (drop and recreate)
-	@echo "$(BLUE)[INFO]$(NC) Resetting database..."
-	@if command -v psql > /dev/null 2>&1; then \
-		dropdb taskflow 2>/dev/null || true; \
-		createdb taskflow; \
-		psql -d taskflow -f backend/database/schema.sql; \
-		echo "$(GREEN)[SUCCESS]$(NC) Database reset successfully!"; \
-	else \
-		echo "$(RED)[ERROR]$(NC) PostgreSQL not available"; \
-		exit 1; \
-	fi
+db-reset: ## Reset database using Docker
+	@echo "$(BLUE)[INFO]$(NC) Resetting database using Docker..."
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -c "DROP DATABASE IF EXISTS taskflow;"
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -c "CREATE DATABASE taskflow;"
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -f /docker-entrypoint-initdb.d/schema.sql
+	@echo "$(GREEN)[SUCCESS]$(NC) Database reset successfully!"
+
+.PHONY: db-migrate
+db-migrate: ## Run database migrations using Docker
+	@echo "$(BLUE)[INFO]$(NC) Running database migrations using Docker..."
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -f /docker-entrypoint-initdb.d/migrations.sql
+	@echo "$(GREEN)[SUCCESS]$(NC) Database migrations completed!"
 
 # =============================================================================
 # CLEANUP COMMANDS
@@ -301,47 +341,27 @@ clean: ## Clean all containers, volumes, and build artifacts
 	@$(DOCKER_COMPOSE_DEV) down -v --remove-orphans
 	@$(DOCKER_COMPOSE_PROD) down -v --remove-orphans
 	@echo "$(BLUE)[INFO]$(NC) Cleaning build artifacts..."
-	@rm -rf frontend/dist frontend/node_modules
-	@cd backend && npm run clean
-	@echo "$(GREEN)[SUCCESS]$(NC) Cleanup completed!"
-
-.PHONY: clean-docker
-clean-docker: ## Clean Docker containers and images
-	@echo "$(BLUE)[INFO]$(NC) Cleaning Docker containers and images..."
 	@docker system prune -f
 	@docker volume prune -f
-	@echo "$(GREEN)[SUCCESS]$(NC) Docker cleanup completed!"
-
-.PHONY: clean-node
-clean-node: ## Clean Node.js dependencies and build artifacts
-	@echo "$(BLUE)[INFO]$(NC) Cleaning Node.js dependencies..."
-	@rm -rf node_modules package-lock.json
-	@cd frontend && rm -rf node_modules package-lock.json
-	@cd backend && npm run clean
-	@echo "$(GREEN)[SUCCESS]$(NC) Node.js cleanup completed!"
+	@echo "$(GREEN)[SUCCESS]$(NC) Cleanup completed!"
 
 # =============================================================================
 # SETUP COMMANDS
 # =============================================================================
 
 .PHONY: setup
-setup: ## Complete project setup (install, build, db-setup)
+setup: ## Complete project setup using Docker
 	@echo "$(BLUE)[INFO]$(NC) Starting TaskFlow Setup..."
 	@echo "$(BLUE)[INFO]$(NC) Checking prerequisites..."
-	@if ! command -v node > /dev/null 2>&1; then \
-		echo "$(RED)[ERROR]$(NC) Node.js is not installed. Please install Node.js 18+ first."; \
-		exit 1; \
-	fi
-	@if ! command -v npm > /dev/null 2>&1; then \
-		echo "$(RED)[ERROR]$(NC) npm is not installed. Please install npm first."; \
-		exit 1; \
-	fi
 	@if ! command -v docker > /dev/null 2>&1; then \
-		echo "$(YELLOW)[WARNING]$(NC) Docker is not installed. Some commands may not work."; \
+		echo "$(RED)[ERROR]$(NC) Docker is not installed. Please install Docker first."; \
+		exit 1; \
+	fi
+	@if ! docker info > /dev/null 2>&1; then \
+		echo "$(RED)[ERROR]$(NC) Docker is not running. Please start Docker first."; \
+		exit 1; \
 	fi
 	@echo "$(GREEN)[SUCCESS]$(NC) Prerequisites check passed!"
-	@echo "$(BLUE)[INFO]$(NC) Installing dependencies..."
-	@$(MAKE) install
 	@echo "$(BLUE)[INFO]$(NC) Building services..."
 	@$(MAKE) build
 	@echo "$(BLUE)[INFO]$(NC) Setting up database..."
@@ -353,8 +373,24 @@ setup: ## Complete project setup (install, build, db-setup)
 	@echo "$(YELLOW)Next steps:$(NC)"
 	@echo "1. Update .env file with your configuration"
 	@echo "2. Start development environment: $(GREEN)make dev$(NC)"
-	@echo "3. Access Frontend at: $(GREEN)http://localhost:3000$(NC)"
-	@echo "4. Access API Gateway at: $(GREEN)http://localhost:8000$(NC)"
+	@echo "3. Access Frontend at: $(GREEN)http://localhost:23000$(NC)"
+	@echo "4. Access API Gateway at: $(GREEN)http://localhost:28000$(NC)"
+
+.PHONY: setup-env
+setup-env: ## Setup environment variables for production
+	@echo "$(BLUE)[INFO]$(NC) Setting up environment variables..."
+	@if [ ! -f .env ]; then \
+		cp env.example .env; \
+		echo "$(GREEN)[SUCCESS]$(NC) Created .env file from template"; \
+		echo "$(YELLOW)[INFO]$(NC) Please edit .env file with your configuration:"; \
+		echo "   - POSTGRES_PASSWORD: Set a secure database password"; \
+		echo "   - JWT_SECRET: Set a strong JWT secret"; \
+		echo "   - NGROK_AUTHTOKEN: Get from https://ngrok.com"; \
+		echo "   - NGROK_REGION: Set your preferred region (us, eu, ap, au, sa, jp, in)"; \
+		echo "     For Indonesia, use 'ap' (Asia Pacific) for best performance"; \
+	else \
+		echo "$(YELLOW)[INFO]$(NC) .env file already exists"; \
+	fi
 
 # =============================================================================
 # UTILITY COMMANDS
@@ -370,12 +406,12 @@ status: ## Show status of all services
 	@$(DOCKER_COMPOSE_PROD) ps
 
 .PHONY: health
-health: ## Check health of all services
+health: ## Check health of all services using Docker
 	@echo "$(BLUE)[INFO]$(NC) Checking service health..."
 	@echo "$(BLUE)API Gateway Health:$(NC)"
-	@curl -s http://localhost:8000/health || echo "$(RED)API Gateway not responding$(NC)"
+	@$(DOCKER_COMPOSE_DEV) exec api-gateway curl -s http://localhost:8000/health 2>/dev/null || echo "$(RED)API Gateway not responding$(NC)"
 	@echo "$(BLUE)Frontend Health:$(NC)"
-	@curl -s http://localhost:3000 | head -1 || echo "$(RED)Frontend not responding$(NC)"
+	@$(DOCKER_COMPOSE_DEV) exec frontend-dev curl -s http://localhost:3000 2>/dev/null | head -1 || echo "$(RED)Frontend not responding$(NC)"
 
 .PHONY: shell
 shell: ## Open shell in frontend container
@@ -387,13 +423,16 @@ shell-backend: ## Open shell in backend container
 	@echo "$(BLUE)[INFO]$(NC) Opening shell in backend container..."
 	@$(DOCKER_COMPOSE_DEV) exec api-gateway /bin/bash
 
+.PHONY: shell-db
+shell-db: ## Open shell in database container
+	@echo "$(BLUE)[INFO]$(NC) Opening shell in database container..."
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow
+
 .PHONY: restart
 restart: ## Restart development environment
 	@echo "$(BLUE)[INFO]$(NC) Restarting development environment..."
 	@$(MAKE) stop
 	@$(MAKE) dev
-
-
 
 # =============================================================================
 # DEVELOPMENT WORKFLOW
@@ -413,26 +452,8 @@ reset: ## Reset everything and start fresh
 	@$(MAKE) dev
 
 # =============================================================================
-# DOCUMENTATION
-# =============================================================================
-
-.PHONY: docs
-docs: ## Generate documentation
-	@echo "$(BLUE)[INFO]$(NC) Generating documentation..."
-	@echo "$(GREEN)[SUCCESS]$(NC) Documentation generated!"
-
-.PHONY: readme
-readme: ## Show README content
-	@cat README.md
-
-# =============================================================================
 # MONITORING
 # =============================================================================
-
-.PHONY: monitor
-monitor: ## Monitor all services
-	@echo "$(BLUE)[INFO]$(NC) Monitoring all services..."
-	@watch -n 2 'make status'
 
 .PHONY: logs-all
 logs-all: ## View all logs (development + production)
@@ -443,38 +464,16 @@ logs-all: ## View all logs (development + production)
 	@$(DOCKER_COMPOSE_PROD) logs --tail=10
 
 # =============================================================================
-# ENVIRONMENT SETUP
+# CODE QUALITY COMMANDS
 # =============================================================================
 
-.PHONY: setup-env
-setup-env: ## Setup environment variables for production
-	@echo "$(BLUE)[INFO]$(NC) Setting up environment variables..."
-	@if [ ! -f .env ]; then \
-		cp env.example .env; \
-		echo "$(GREEN)[SUCCESS]$(NC) Created .env file from template"; \
-		echo "$(YELLOW)[INFO]$(NC) Please edit .env file with your configuration:"; \
-		echo "   - POSTGRES_PASSWORD: Set a secure database password"; \
-		echo "   - JWT_SECRET: Set a strong JWT secret"; \
-		echo "   - NGROK_AUTHTOKEN: Get from https://ngrok.com"; \
-		echo "   - NGROK_REGION: Set your preferred region (default: ap)"; \
-	else \
-		echo "$(YELLOW)[INFO]$(NC) .env file already exists"; \
-	fi
+.PHONY: type-check
+type-check: ## Run TypeScript type checking in containers
+	@echo "$(BLUE)[INFO]$(NC) Running TypeScript type checking in containers..."
+	@$(DOCKER_COMPOSE_DEV) run --rm frontend-dev npm run build
+	@$(DOCKER_COMPOSE_DEV) run --rm api-gateway npm run build
+	@echo "$(GREEN)[SUCCESS]$(NC) Type checking completed!"
 
-.PHONY: setup-prod
-setup-prod: ## Complete production setup
-	@echo "$(BLUE)[INFO]$(NC) Setting up production environment..."
-	@$(MAKE) setup-env
-	@echo "$(GREEN)[SUCCESS]$(NC) Production environment setup complete!"
-	@echo "$(YELLOW)[INFO]$(NC) Next steps:"
-	@echo "   1. Edit .env file with your configuration"
-	@echo "   2. Run: make prod"
-
-.PHONY: remove-scripts
-remove-scripts: ## Remove shell scripts (migrated to Makefile)
-	@echo "$(BLUE)[INFO]$(NC) Removing shell scripts (migrated to Makefile)..."
-	@rm -f scripts/docker-dev.sh scripts/docker-prod.sh
-	@echo "$(GREEN)[SUCCESS]$(NC) Shell scripts removed!"
-	@echo "$(YELLOW)[INFO]$(NC) Use Makefile commands instead:"
-	@echo "   - make dev-interactive (replaces ./scripts/docker-dev.sh)"
-	@echo "   - make prod-interactive (replaces ./scripts/docker-prod.sh)" 
+.PHONY: readme
+readme: ## Show README content
+	@cat README.md 

@@ -8,24 +8,26 @@ services:
     environment:
       POSTGRES_DB: taskflow
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
     ports:
-      - "25432:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: taskflow-redis-dev
     ports:
-      - "26379:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Auth Service
   auth-service:
@@ -40,10 +42,9 @@ services:
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: your-super-secret-jwt-key
     ports:
       - "3001:3001"
     depends_on:
@@ -51,6 +52,7 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # User Service
   user-service:
@@ -65,7 +67,7 @@ services:
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -75,6 +77,7 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Task Service
   task-service:
@@ -89,7 +92,7 @@ services:
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -99,6 +102,7 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Project Service
   project-service:
@@ -113,7 +117,7 @@ services:
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -123,6 +127,7 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Notification Service
   notification-service:
@@ -137,7 +142,7 @@ services:
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -147,6 +152,7 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Tenant Service
   tenant-service:
@@ -161,7 +167,7 @@ services:
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -171,6 +177,7 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # API Gateway
   api-gateway:
@@ -181,11 +188,6 @@ services:
     environment:
       NODE_ENV: development
       GATEWAY_PORT: 8000
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: taskflow
-      DB_USER: postgres
-      DB_PASSWORD: password
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3002
       TASK_SERVICE_URL: http://task-service:3003
@@ -193,7 +195,7 @@ services:
       NOTIFICATION_SERVICE_URL: http://notification-service:3005
       TENANT_SERVICE_URL: http://tenant-service:3006
     ports:
-      - "28000:8000"
+      - "8000:8000"
     depends_on:
       - auth-service
       - user-service
@@ -203,25 +205,23 @@ services:
       - tenant-service
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Frontend Development
-  frontend-dev:
+  frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
     container_name: taskflow-frontend-dev
     environment:
-      VITE_API_URL: http://localhost:28000
+      VITE_API_URL: http://localhost:8000
     ports:
-      - "23000:3000"
-    volumes:
-      # Mount source code for hot reload
-      - ./frontend:/app
-      - /app/node_modules
+      - "3000:3000"
     depends_on:
       - api-gateway
     networks:
       - taskflow-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
