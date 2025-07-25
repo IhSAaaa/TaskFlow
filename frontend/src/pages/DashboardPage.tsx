@@ -1,5 +1,6 @@
 import React from 'react';
-import { CheckSquare, Clock, Users, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CheckSquare, Clock, Users, TrendingUp, ArrowRight } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const stats = [
@@ -9,6 +10,7 @@ export const DashboardPage: React.FC = () => {
       change: '+12%',
       changeType: 'positive',
       icon: CheckSquare,
+      href: '/tasks',
     },
     {
       name: 'In Progress',
@@ -16,6 +18,7 @@ export const DashboardPage: React.FC = () => {
       change: '+5%',
       changeType: 'positive',
       icon: Clock,
+      href: '/tasks?status=in_progress',
     },
     {
       name: 'Team Members',
@@ -23,6 +26,7 @@ export const DashboardPage: React.FC = () => {
       change: '+2',
       changeType: 'positive',
       icon: Users,
+      href: '/team',
     },
     {
       name: 'Completion Rate',
@@ -30,6 +34,7 @@ export const DashboardPage: React.FC = () => {
       change: '+3%',
       changeType: 'positive',
       icon: TrendingUp,
+      href: '/projects',
     },
   ];
 
@@ -101,7 +106,11 @@ export const DashboardPage: React.FC = () => {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.name} className="bg-white rounded-lg shadow p-6">
+            <Link
+              key={stat.name}
+              to={stat.href}
+              className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow cursor-pointer group"
+            >
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <Icon className="h-8 w-8 text-primary-600" />
@@ -110,6 +119,7 @@ export const DashboardPage: React.FC = () => {
                   <p className="text-sm font-medium text-gray-500">{stat.name}</p>
                   <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
                 </div>
+                <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
               </div>
               <div className="mt-4">
                 <span className={`text-sm font-medium ${
@@ -119,19 +129,26 @@ export const DashboardPage: React.FC = () => {
                 </span>
                 <span className="text-sm text-gray-500 ml-1">from last month</span>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
 
       {/* Recent Tasks */}
       <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-lg font-medium text-gray-900">Recent Tasks</h2>
+          <Link
+            to="/tasks"
+            className="text-sm font-medium text-primary-600 hover:text-primary-500 flex items-center"
+          >
+            View all tasks
+            <ArrowRight className="h-4 w-4 ml-1" />
+          </Link>
         </div>
         <div className="divide-y divide-gray-200">
           {recentTasks.map((task) => (
-            <div key={task.id} className="px-6 py-4">
+            <div key={task.id} className="px-6 py-4 hover:bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-gray-900">{task.title}</h3>

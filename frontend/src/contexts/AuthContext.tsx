@@ -126,6 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       localStorage.setItem('token', data.data.accessToken);
       localStorage.setItem('refreshToken', data.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(data.data.user));
 
       dispatch({
         type: 'LOGIN_SUCCESS',
@@ -169,6 +170,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
     dispatch({ type: 'LOGOUT' });
   };
 
@@ -180,6 +182,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
       
       if (!token) {
         dispatch({ type: 'SET_LOADING', payload: false });
@@ -202,15 +205,62 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               token,
             },
           });
+        } else if (refreshToken) {
+          // Try to refresh token
+          try {
+            const refreshResponse = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ refreshToken }),
+            });
+
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+              localStorage.setItem('token', refreshData.data.accessToken);
+              localStorage.setItem('refreshToken', refreshData.data.refreshToken);
+              
+              // Get user data with new token
+              const userResponse = await fetch('/api/auth/validate', {
+                headers: {
+                  'Authorization': `Bearer ${refreshData.data.accessToken}`,
+                },
+              });
+
+              if (userResponse.ok) {
+                const userData = await userResponse.json();
+                dispatch({
+                  type: 'LOGIN_SUCCESS',
+                  payload: {
+                    user: userData.data.user,
+                    token: refreshData.data.accessToken,
+                  },
+                });
+              } else {
+                throw new Error('Failed to get user data');
+              }
+            } else {
+              throw new Error('Token refresh failed');
+            }
+          } catch (refreshError) {
+            // Both token and refresh token are invalid
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            dispatch({ type: 'LOGIN_FAILURE' });
+          }
         } else {
-          // Token is invalid, clear it
+          // Token is invalid and no refresh token
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
           dispatch({ type: 'LOGIN_FAILURE' });
         }
       } catch (error) {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
         dispatch({ type: 'LOGIN_FAILURE' });
       } finally {
         dispatch({ type: 'SET_LOADING', payload: false });

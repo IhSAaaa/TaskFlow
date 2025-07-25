@@ -237,11 +237,10 @@ PUT    /api/tenants/:id/upgrade-plan - Upgrade plan
 cd backend
 
 # Run automated setup
-chmod +x setup.sh
-./setup.sh
+make setup
 
 # Start all services
-npm run dev:all
+make dev
 ```
 
 ### Manual Setup

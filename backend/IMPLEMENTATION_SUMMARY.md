@@ -251,9 +251,8 @@ npm run install:all      # Install all dependencies
 ### Quick Start
 ```bash
 cd backend
-chmod +x setup.sh
-./setup.sh
-npm run dev:all
+make setup
+make dev
 ```
 
 ### Manual Setup

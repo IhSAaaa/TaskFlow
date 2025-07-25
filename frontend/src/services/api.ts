@@ -15,18 +15,17 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor to add auth token and tenant info
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
-    const tenantId = localStorage.getItem('tenantId');
-    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    if (tenantId) {
-      config.headers['x-tenant-id'] = tenantId;
+    if (user?.tenantId) {
+      config.headers['x-tenant-id'] = user.tenantId;
     }
-    if (userId) {
-      config.headers['x-user-id'] = userId;
+    if (user?.id) {
+      config.headers['x-user-id'] = user.id;
     }
 
     return config;
@@ -42,9 +41,9 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('tenantId');
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

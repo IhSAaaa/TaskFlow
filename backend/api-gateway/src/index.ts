@@ -63,8 +63,13 @@ app.get('/health', async (req, res) => {
   res.json(healthStatus);
 });
 
-// Service routes with rate limiting
-app.use('/api/auth', authRateLimiter, createProxyMiddleware({
+// Test endpoint
+app.get('/test', (req, res) => {
+  res.json({ message: 'API Gateway is working' });
+});
+
+// Auth service proxy
+app.use('/api/auth', createProxyMiddleware({
   target: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
   changeOrigin: true,
   pathRewrite: {

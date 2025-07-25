@@ -1,11 +1,14 @@
 import React from 'react';
 import { Menu, Bell, Search } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   onMenuToggle: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
+  const { user } = useAuth();
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="flex items-center justify-between px-4 py-4 lg:px-6">
@@ -42,7 +45,15 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
           {/* User avatar */}
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-              <span className="text-primary-600 font-semibold text-sm">JD</span>
+              <span className="text-primary-600 font-semibold text-sm">
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              </span>
+            </div>
+            <div className="hidden md:block">
+              <p className="text-sm font-medium text-gray-900">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-xs text-gray-500">{user?.email}</p>
             </div>
           </div>
         </div>

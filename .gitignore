@@ -98,7 +98,7 @@ Thumbs.db
 # Docker
 .dockerignore
 
-# Kubernetes
+
 *.kubeconfig
 
 # Database

@@ -1,47 +1,51 @@
+version: '3.8'
+
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: taskflow-postgres
+    container_name: taskflow-postgres-prod
     environment:
       POSTGRES_DB: taskflow
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_prod_password}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: taskflow-redis
+    container_name: taskflow-redis-prod
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Auth Service
   auth-service:
     build:
       context: ./backend
       dockerfile: auth-service/Dockerfile
-    container_name: taskflow-auth-service
+    container_name: taskflow-auth-service-prod
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       AUTH_SERVICE_PORT: 3001
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_prod_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: your-super-secret-jwt-key
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-prod}
     ports:
       - "3001:3001"
     depends_on:
@@ -49,21 +53,22 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # User Service
   user-service:
     build:
       context: ./backend
       dockerfile: user-service/Dockerfile
-    container_name: taskflow-user-service
+    container_name: taskflow-user-service-prod
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       USER_SERVICE_PORT: 3002
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_prod_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -73,21 +78,22 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Task Service
   task-service:
     build:
       context: ./backend
       dockerfile: task-service/Dockerfile
-    container_name: taskflow-task-service
+    container_name: taskflow-task-service-prod
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       TASK_SERVICE_PORT: 3003
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_prod_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -97,21 +103,22 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Project Service
   project-service:
     build:
       context: ./backend
       dockerfile: project-service/Dockerfile
-    container_name: taskflow-project-service
+    container_name: taskflow-project-service-prod
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       PROJECT_SERVICE_PORT: 3004
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_prod_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -121,21 +128,22 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Notification Service
   notification-service:
     build:
       context: ./backend
       dockerfile: notification-service/Dockerfile
-    container_name: taskflow-notification-service
+    container_name: taskflow-notification-service-prod
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       NOTIFICATION_SERVICE_PORT: 3005
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_prod_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -145,21 +153,22 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # Tenant Service
   tenant-service:
     build:
       context: ./backend
       dockerfile: tenant-service/Dockerfile
-    container_name: taskflow-tenant-service
+    container_name: taskflow-tenant-service-prod
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       TENANT_SERVICE_PORT: 3006
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: taskflow
       DB_USER: postgres
-      DB_PASSWORD: password
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_prod_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
@@ -169,15 +178,16 @@ services:
       - redis
     networks:
       - taskflow-network
+    restart: unless-stopped
 
   # API Gateway
   api-gateway:
     build:
       context: ./backend
       dockerfile: api-gateway/Dockerfile
-    container_name: taskflow-api-gateway
+    container_name: taskflow-api-gateway-prod
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       GATEWAY_PORT: 8000
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3002
@@ -196,13 +206,14 @@ services:
       - tenant-service
     networks:
       - taskflow-network
+    restart: unless-stopped
 
-  # Frontend
+  # Frontend Production
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: taskflow-frontend
+    container_name: taskflow-frontend-prod
     environment:
       VITE_API_URL: http://localhost:8000
     ports:
@@ -211,6 +222,27 @@ services:
       - api-gateway
     networks:
       - taskflow-network
+    restart: unless-stopped
+
+  # Ngrok for exposing the application
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: taskflow-ngrok
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+      NGROK_REGION: ${NGROK_REGION:-ap}
+    ports:
+      - "4040:4040"  # Ngrok web interface
+    command: >
+      http frontend:3000
+      --log=stdout
+      --region=${NGROK_REGION:-ap}
+      --authtoken=${NGROK_AUTHTOKEN}
+    depends_on:
+      - frontend
+    networks:
+      - taskflow-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
