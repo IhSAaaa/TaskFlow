@@ -10,19 +10,25 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
     ports:
-      - "5432:5432"
+      - "25432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/database:/docker-entrypoint-initdb.d
     networks:
       - taskflow-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d taskflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: taskflow-redis-dev
     ports:
-      - "6379:6379"
+      - "26379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -188,6 +194,13 @@ services:
     environment:
       NODE_ENV: development
       GATEWAY_PORT: 8000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_dev_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3002
       TASK_SERVICE_URL: http://task-service:3003
@@ -195,8 +208,10 @@ services:
       NOTIFICATION_SERVICE_URL: http://notification-service:3005
       TENANT_SERVICE_URL: http://tenant-service:3006
     ports:
-      - "8000:8000"
+      - "28000:8000"
     depends_on:
+      - postgres
+      - redis
       - auth-service
       - user-service
       - task-service
@@ -214,9 +229,9 @@ services:
       dockerfile: Dockerfile.dev
     container_name: taskflow-frontend-dev
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: http://localhost:28000
     ports:
-      - "3000:3000"
+      - "23000:3000"
     depends_on:
       - api-gateway
     networks:

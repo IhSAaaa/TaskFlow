@@ -51,8 +51,8 @@ dev: ## Start development environment with hot reload
 	@echo "$(BLUE)[INFO]$(NC) Checking frontend status..."
 	@if docker ps | grep -q "taskflow-frontend-dev"; then \
 		echo "$(GREEN)[SUCCESS]$(NC) Frontend development server is running!"; \
-		echo "$(GREEN)🌐 Frontend:$(NC) http://localhost:3000"; \
-		echo "$(GREEN)🔌 API Gateway:$(NC) http://localhost:8000"; \
+		echo "$(GREEN)🌐 Frontend:$(NC) http://localhost:23000"; \
+		echo "$(GREEN)🔌 API Gateway:$(NC) http://localhost:28000"; \
 		echo ""; \
 		echo "$(BLUE)📝 Development mode enabled with hot reload!$(NC)"; \
 		echo "$(BLUE)💡 Any changes to frontend code will automatically reload.$(NC)"; \
@@ -310,20 +310,31 @@ db-setup: ## Setup database using Docker
 	@echo "$(BLUE)[INFO]$(NC) Setting up database using Docker..."
 	@$(DOCKER_COMPOSE_DEV) up -d postgres
 	@echo "$(BLUE)[INFO]$(NC) Waiting for database to be ready..."
-	@sleep 5
-	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -c "SELECT 1;" 2>/dev/null || \
-		$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -c "CREATE DATABASE taskflow;"
-	@echo "$(BLUE)[INFO]$(NC) Running database schema..."
-	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -f /docker-entrypoint-initdb.d/schema.sql
+	@sleep 10
+	@echo "$(BLUE)[INFO]$(NC) Database should be auto-initialized with schema and seed data"
 	@echo "$(GREEN)[SUCCESS]$(NC) Database setup completed!"
 
 .PHONY: db-reset
 db-reset: ## Reset database using Docker
 	@echo "$(BLUE)[INFO]$(NC) Resetting database using Docker..."
-	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -c "DROP DATABASE IF EXISTS taskflow;"
-	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -c "CREATE DATABASE taskflow;"
-	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -f /docker-entrypoint-initdb.d/schema.sql
+	@$(DOCKER_COMPOSE_DEV) down postgres
+	@$(DOCKER_COMPOSE_DEV) volume rm new_postgres_data 2>/dev/null || true
+	@$(DOCKER_COMPOSE_DEV) up -d postgres
+	@echo "$(BLUE)[INFO]$(NC) Waiting for database to be reinitialized..."
+	@sleep 15
 	@echo "$(GREEN)[SUCCESS]$(NC) Database reset successfully!"
+
+.PHONY: db-check
+db-check: ## Check database status and tables
+	@echo "$(BLUE)[INFO]$(NC) Checking database status..."
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -c "\dt" || \
+		echo "$(RED)[ERROR]$(NC) Database not accessible or tables not found"
+	@echo "$(BLUE)[INFO]$(NC) Checking users table..."
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -c "SELECT COUNT(*) as user_count FROM users;" || \
+		echo "$(RED)[ERROR]$(NC) Users table not found"
+	@echo "$(BLUE)[INFO]$(NC) Checking tenants table..."
+	@$(DOCKER_COMPOSE_DEV) exec postgres psql -U postgres -d taskflow -c "SELECT COUNT(*) as tenant_count FROM tenants;" || \
+		echo "$(RED)[ERROR]$(NC) Tenants table not found"
 
 .PHONY: db-migrate
 db-migrate: ## Run database migrations using Docker

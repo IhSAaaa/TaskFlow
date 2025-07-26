@@ -18,6 +18,9 @@ CREATE TABLE users (
     phone VARCHAR(20),
     timezone VARCHAR(50) DEFAULT 'UTC',
     language VARCHAR(10) DEFAULT 'en',
+    refresh_token TEXT,
+    reset_token VARCHAR(255),
+    reset_token_expiry TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -229,3 +232,16 @@ INSERT INTO tenants (id, name, domain, status, plan, owner_id, max_users, max_pr
 INSERT INTO users (id, email, username, first_name, last_name, password_hash, tenant_id, status) VALUES
 ('550e8400-e29b-41d4-a716-446655440001', 'admin@demo.taskflow.com', 'admin', 'Admin', 'User', '$2b$10$hashedpassword', '550e8400-e29b-41d4-a716-446655440000', 'active'),
 ('550e8400-e29b-41d4-a716-446655440002', 'user@demo.taskflow.com', 'user', 'Regular', 'User', '$2b$10$hashedpassword', '550e8400-e29b-41d4-a716-446655440000', 'active'); 
+
+-- Schema migrations tracking table
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    id SERIAL PRIMARY KEY,
+    version VARCHAR(255) UNIQUE NOT NULL,
+    applied_at TIMESTAMP DEFAULT NOW(),
+    description TEXT
+);
+
+-- Insert initial migration record
+INSERT INTO schema_migrations (version, description) 
+VALUES ('initial', 'Initial schema creation')
+ON CONFLICT (version) DO NOTHING; 

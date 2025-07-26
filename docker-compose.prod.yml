@@ -15,6 +15,11 @@ services:
     networks:
       - taskflow-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d taskflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis Cache
   redis:
@@ -188,6 +193,14 @@ services:
     environment:
       NODE_ENV: production
       GATEWAY_PORT: 8000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_prod_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-prod}
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3002
       TASK_SERVICE_URL: http://task-service:3003
@@ -197,6 +210,8 @@ services:
     ports:
       - "28000:8000"
     depends_on:
+      - postgres
+      - redis
       - auth-service
       - user-service
       - task-service

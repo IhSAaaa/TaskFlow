@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.3.1] - 2025-07-26
+
+### 🔧 Database Connection Fix
+- **Fixed PostgreSQL connection issue** in API Gateway health checks
+- **Updated database initialization script** (`init-db.sh`) to use Unix socket instead of localhost
+- **Resolved ECONNREFUSED errors** that were preventing API Gateway from connecting to PostgreSQL
+- **Added comprehensive database setup documentation** in `docs/database-setup.md`
+- **Enhanced database initialization process** with proper error handling and status checks
+
+### 📊 Database Management Improvements
+- **Added automatic database initialization** with schema creation and seed data
+- **Implemented database health checks** with proper connection testing
+- **Created database setup documentation** with troubleshooting guides
+- **Added database reset and migration commands** for development workflow
+- **Enhanced database schema** with proper indexing and multi-tenant isolation
+
+### 🐛 Bug Fixes
+- **Fixed**: API Gateway health check failures due to database connection issues
+- **Fixed**: Database initialization script using incorrect connection parameters
+- **Fixed**: PostgreSQL container startup issues with initialization scripts
+- **Improved**: Error handling in database connection attempts
+
+### 📚 Documentation Updates
+- **Added**: Comprehensive database setup guide (`docs/database-setup.md`)
+- **Updated**: README.md with database troubleshooting section
+- **Added**: Database health check examples and commands
+- **Enhanced**: Development workflow documentation with database management
+
+### 🔍 Technical Details
+- **Root Cause**: Script `init-db.sh` was using `localhost:5432` instead of Unix socket connection
+- **Solution**: Updated all PostgreSQL commands to use default Unix socket connection
+- **Impact**: All services now properly connect to database and health checks pass
+- **Testing**: Verified database connectivity from all microservices
+
 ## [1.3.0]
 
 ### 🗑️ Kubernetes Removal

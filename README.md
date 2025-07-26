@@ -23,7 +23,7 @@ A modern, multi-tenant task management and collaboration platform built with mic
 ## 🏗️ Architecture
 
 ### Microservices
-- **API Gateway** (Port 8000): Single entry point with routing, rate limiting, and health checks
+- **API Gateway** (Port 28000): Single entry point with routing, rate limiting, and health checks
 - **Auth Service** (Port 3001): User authentication, JWT management, and session handling
 - **User Service** (Port 3002): User profile management and user-related operations
 - **Task Service** (Port 3003): Task CRUD operations, assignment, filtering, and status management
@@ -46,6 +46,13 @@ A modern, multi-tenant task management and collaboration platform built with mic
 - **Redis** for caching, sessions, and real-time data
 - **Health Checks** with curl integration for service monitoring
 
+### Database Management
+- **Automatic Initialization**: Database schema and seed data created automatically
+- **Multi-tenant Architecture**: Complete data isolation between organizations
+- **Health Monitoring**: Real-time database connectivity checks
+- **Migration Support**: Database schema evolution with migration scripts
+- **Troubleshooting Tools**: Comprehensive database diagnostic commands
+
 ## 📁 Project Structure
 
 ```
@@ -55,6 +62,7 @@ taskflow/
 │   ├── architecture.md      # System architecture
 │   ├── development.md       # Development guide
 │   ├── deployment.md        # Deployment guide
+│   ├── database-setup.md    # Database setup and management
 │   └── SECURITY.md          # Security documentation
 ├── frontend/                # Aplikasi React
 │   ├── src/                 # Source code React
@@ -95,8 +103,11 @@ taskflow/
 │   ├── api-gateway/         # 🚪 API Gateway
 │   │   └── src/
 │   │       └── index.ts     # Gateway entry point
-│   ├── database/            # Database schema
-│   │   └── schema.sql       # Database schema
+│   ├── database/            # Database schema and management
+│   │   ├── schema.sql       # Database schema
+│   │   ├── seed.sql         # Initial test data
+│   │   ├── migrations.sql   # Database migrations
+│   │   └── init-db.sh       # Database initialization script
 │   ├── env.example          # Environment template
 │   ├── package.json         # Backend workspace configuration
 │   ├── README.md            # Backend documentation
@@ -354,6 +365,31 @@ curl http://localhost:3005/health  # Notification Service
 curl http://localhost:3006/health  # Tenant Service
 ```
 
+### Database Health Check
+```bash
+# Check database connectivity
+docker exec taskflow-postgres-dev psql -U postgres -d taskflow -c "SELECT version();"
+
+# Check database tables
+docker exec taskflow-postgres-dev psql -U postgres -d taskflow -c "\dt"
+
+# Test database connection from API Gateway
+docker exec taskflow-api-gateway-dev node -e "
+const { Pool } = require('pg'); 
+const pool = new Pool({ 
+  host: 'postgres', 
+  port: 5432, 
+  database: 'taskflow', 
+  user: 'postgres', 
+  password: 'your_secure_password_here' 
+}); 
+pool.query('SELECT NOW()', (err, res) => { 
+  if (err) { console.error('Error:', err.message); } 
+  else { console.log('Success:', res.rows[0]); } 
+  pool.end(); 
+});"
+```
+
 ### Sample API Calls
 ```bash
 # Create a tenant
@@ -378,7 +414,78 @@ docker-compose -f docker-compose.yml up -d
 docker-compose --env-file .env.production up -d
 ```
 
+## 🔧 Troubleshooting
 
+### Database Connection Issues
+
+#### Problem: API Gateway Health Check Fails
+If you see errors like `connect ECONNREFUSED 172.18.0.3:5432` in API Gateway logs:
+
+```bash
+# Check if PostgreSQL is running
+docker ps | grep postgres
+
+# Check PostgreSQL logs
+docker logs taskflow-postgres-dev
+
+# Restart PostgreSQL container
+docker-compose -f docker-compose.dev.yml restart postgres
+
+# Test database connection
+docker exec taskflow-postgres-dev psql -U postgres -d taskflow -c "SELECT 1;"
+```
+
+#### Problem: Database Initialization Fails
+If database tables are not created:
+
+```bash
+# Reset database completely
+make db-reset
+
+# Or manually reset
+docker-compose -f docker-compose.dev.yml down
+docker volume rm new_postgres_data
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+#### Problem: Health Check Shows "unhealthy"
+```bash
+# Check API Gateway health
+curl http://localhost:28000/health
+
+# Check individual service health
+curl http://localhost:3001/health
+
+# View service logs
+docker logs taskflow-api-gateway-dev
+```
+
+### Common Solutions
+
+#### Reset Everything
+```bash
+# Complete reset
+make clean
+make setup
+make dev
+```
+
+#### Database Reset Only
+```bash
+# Reset database with fresh data
+make db-reset
+```
+
+#### Check Service Status
+```bash
+# Show all service status
+make status
+
+# Check health of all services
+make health
+```
+
+For detailed database setup and troubleshooting, see [Database Setup Guide](docs/database-setup.md).
 
 ## 🔒 Security Features
 
@@ -394,13 +501,14 @@ docker-compose --env-file .env.production up -d
 
 ### ✅ Completed Features
 - **Backend Services**: All 7 microservices implemented and tested
-- **API Gateway**: Complete routing and proxy functionality
-- **Database Schema**: Multi-tenant schema with proper relationships
+- **API Gateway**: Complete routing and proxy functionality with database health checks
+- **Database Schema**: Multi-tenant schema with proper relationships and automatic initialization
 - **Authentication**: JWT-based auth with refresh tokens
 - **Real-time Features**: Socket.io integration for notifications
-- **Health Checks**: Comprehensive health monitoring
-- **Docker Setup**: Full containerization with health checks
-- **Documentation**: Complete documentation suite
+- **Health Checks**: Comprehensive health monitoring for all services and database
+- **Docker Setup**: Full containerization with health checks and proper networking
+- **Database Management**: Automatic initialization, migrations, and troubleshooting tools
+- **Documentation**: Complete documentation suite with database setup guide
 
 ### 🎯 **Project Evolution Analysis**
 
@@ -620,8 +728,8 @@ docker-compose -f docker-compose.prod.yml down
 
 After the application is running, you can access:
 
-- **Frontend**: http://localhost:3000
-- **API Gateway**: http://localhost:8000
+- **Frontend**: http://localhost:23000
+- **API Gateway**: http://localhost:28000
 - **Ngrok Web Interface**: http://localhost:4040
 - **Public URL**: Check ngrok web interface to get public URL
 
@@ -790,7 +898,7 @@ Vite dev server is configured to:
    ```
 
 #### Port already in use
-1. Stop container using port 3000:
+1. Stop container using port 23000:
    ```bash
    docker ps | grep 3000
    docker stop <container-id>
@@ -824,7 +932,7 @@ Vite dev server is configured to:
 Development environment uses the same environment variables as production, with some adjustments:
 
 - `NODE_ENV=development` for all services
-- `VITE_API_URL=http://localhost:8000` for frontend
+- `VITE_API_URL=http://localhost:28000` for frontend
 - Hot reload enabled for frontend
 
 ### Tips

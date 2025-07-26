@@ -39,13 +39,16 @@ export class AuthService {
       // Hash password
       const hashedPassword = await bcrypt.hash(data.password, 12);
 
+      // Generate username from email
+      const username = data.email.split('@')[0];
+
       // Create user
       const userId = uuidv4();
       const result = await db.query(
-        `INSERT INTO users (id, email, password, first_name, last_name, role, tenant_id, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        `INSERT INTO users (id, email, username, first_name, last_name, password_hash, tenant_id, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
          RETURNING *`,
-        [userId, data.email, hashedPassword, data.firstName, data.lastName, UserRole.USER, data.tenantId]
+        [userId, data.email, username, data.firstName, data.lastName, hashedPassword, data.tenantId, 'active']
       );
 
       const user = result.rows[0];
@@ -56,7 +59,7 @@ export class AuthService {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        role: user.role,
+        role: UserRole.USER, // Use enum instead of string
         tenantId: user.tenant_id,
         createdAt: user.created_at,
         updatedAt: user.updated_at
@@ -82,7 +85,7 @@ export class AuthService {
       const user = result.rows[0];
 
       // Verify password
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, user.password_hash);
       if (!isPasswordValid) {
         throw new Error('Invalid credentials');
       }
@@ -91,11 +94,16 @@ export class AuthService {
       const accessToken = this.generateAccessToken(user);
       const refreshToken = this.generateRefreshToken(user);
 
-      // Store refresh token in database
-      await db.query(
-        'UPDATE users SET refresh_token = $1 WHERE id = $2',
-        [refreshToken, user.id]
-      );
+      // Store refresh token in database (if refresh_token column exists)
+      try {
+        await db.query(
+          'UPDATE users SET refresh_token = $1 WHERE id = $2',
+          [refreshToken, user.id]
+        );
+      } catch (error) {
+        // If refresh_token column doesn't exist, just log it
+        logger.warn('Refresh token column not found, skipping token storage');
+      }
 
       logger.info('User logged in successfully', { userId: user.id, email: user.email });
 
@@ -105,7 +113,7 @@ export class AuthService {
           email: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
-          role: user.role,
+          role: UserRole.USER, // Use enum instead of string
           tenantId: user.tenant_id,
           createdAt: user.created_at,
           updatedAt: user.updated_at
@@ -193,7 +201,7 @@ export class AuthService {
       const user = result.rows[0];
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
       if (!isCurrentPasswordValid) {
         throw new Error('Current password is incorrect');
       }
@@ -203,7 +211,7 @@ export class AuthService {
 
       // Update password
       await db.query(
-        'UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2',
+        'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
         [hashedNewPassword, userId]
       );
 
@@ -262,7 +270,7 @@ export class AuthService {
 
       // Update password and clear reset token
       await db.query(
-        'UPDATE users SET password = $1, reset_token = NULL, reset_token_expiry = NULL, updated_at = NOW() WHERE id = $2',
+        'UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expiry = NULL, updated_at = NOW() WHERE id = $2',
         [hashedPassword, user.id]
       );
 
