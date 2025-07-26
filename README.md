@@ -31,6 +31,10 @@ A modern, multi-tenant task management and collaboration platform built with mic
 - **Notification Service** (Port 3005): Real-time notifications with Socket.io integration
 - **Tenant Service** (Port 3006): Multi-tenancy management, tenant settings, and plan management
 
+### Infrastructure Services
+- **PostgreSQL** (Port 25432): Primary database with multi-tenant schema
+- **Redis** (Port 26379): Caching, sessions, and real-time data storage
+
 ### Frontend
 - **React 18** with TypeScript for type safety
 - **Tailwind CSS** for modern, responsive styling
@@ -213,7 +217,11 @@ docker-compose -f docker-compose.prod.yml up --build
 - Container restart policy
 - Secure environment variables
 
-See [DOCKER_SETUP.md](DOCKER_SETUP.md) for complete documentation.
+**Service Ports:**
+- Frontend: http://localhost:23000
+- API Gateway: http://localhost:28000
+- PostgreSQL: localhost:25432
+- Redis: localhost:26379
 
 ### Alternative Setup Methods
 
@@ -460,6 +468,53 @@ curl http://localhost:3001/health
 docker logs taskflow-api-gateway-dev
 ```
 
+### API Gateway Connection Issues
+
+#### Problem: "Empty reply from server" Error
+If you get `curl: (52) Empty reply from server` when calling API endpoints:
+
+```bash
+# Check API Gateway logs for ECONNRESET errors
+docker logs taskflow-api-gateway-prod
+
+# Check auth service logs for request abort errors
+docker logs taskflow-auth-service-prod
+
+# Verify the fix is applied (should not see express.json() in API Gateway)
+docker exec taskflow-api-gateway-prod cat /app/dist/src/index.js | grep "express.json"
+```
+
+#### Problem: Request Body Not Being Forwarded
+If POST requests fail with missing data:
+
+```bash
+# Test direct auth service connection
+curl -X POST http://localhost:3001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test","firstName":"Test","lastName":"User","tenantId":"550e8400-e29b-41d4-a716-446655440000"}'
+
+# Test through API Gateway
+curl -X POST http://localhost:28000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test","firstName":"Test","lastName":"User","tenantId":"550e8400-e29b-41d4-a716-446655440000"}'
+```
+
+#### Solution: Rebuild Services
+If the issue persists, rebuild the services:
+
+```bash
+# Rebuild API Gateway and Auth Service
+docker-compose -f docker-compose.prod.yml build api-gateway auth-service
+
+# Restart services
+docker-compose -f docker-compose.prod.yml up -d api-gateway auth-service
+
+# Verify fix
+curl -X POST http://localhost:28000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test","firstName":"Test","lastName":"User","tenantId":"550e8400-e29b-41d4-a716-446655440000"}'
+```
+
 ### Common Solutions
 
 #### Reset Everything
@@ -509,6 +564,7 @@ For detailed database setup and troubleshooting, see [Database Setup Guide](docs
 - **Docker Setup**: Full containerization with health checks and proper networking
 - **Database Management**: Automatic initialization, migrations, and troubleshooting tools
 - **Documentation**: Complete documentation suite with database setup guide
+- **API Gateway Fix**: Resolved connection issues and request body forwarding problems
 
 ### 🎯 **Project Evolution Analysis**
 
@@ -533,6 +589,18 @@ For detailed database setup and troubleshooting, see [Database Setup Guide](docs
 - **Shell Script Migration**: Unified automation through Makefile
 - **Enhanced UX**: Interactive and background modes
 - **Cross-Platform**: Works on Linux, macOS, and Windows
+
+#### **Version 1.3.1 - Database Connection Fix**
+- **PostgreSQL Connection**: Fixed database connection issues in API Gateway
+- **Health Check Improvements**: Enhanced database health monitoring
+- **Database Setup Guide**: Comprehensive troubleshooting documentation
+- **Initialization Scripts**: Improved database setup and migration tools
+
+#### **Version 1.3.2 - API Gateway Connection Fix**
+- **Request Body Forwarding**: Fixed proxy middleware conflicts with express.json()
+- **Connection Stability**: Resolved ECONNRESET errors in API Gateway
+- **Error Handling**: Enhanced auth service request processing
+- **Troubleshooting**: Added comprehensive API gateway connection debugging
 
 ### 📈 **Technical Metrics**
 

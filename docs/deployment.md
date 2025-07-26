@@ -33,8 +33,8 @@ docker ps
 docker-compose logs -f
 
 # Access the application
-# Frontend: http://localhost:3000
-# API Gateway: http://localhost:8000
+# Frontend: http://localhost:23000
+# API Gateway: http://localhost:28000
 ```
 
 ### Environment Configuration
@@ -65,7 +65,7 @@ NOTIFICATION_SERVICE_URL=http://notification-service:3005
 TENANT_SERVICE_URL=http://tenant-service:3006
 
 # Frontend
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:28000
 ```
 
 ### Health Checks
@@ -77,7 +77,7 @@ Verify all services are healthy:
 docker ps
 
 # Test health endpoints
-curl http://localhost:8000/health
+curl http://localhost:28000/health
 curl http://localhost:3001/health
 curl http://localhost:3002/health
 curl http://localhost:3003/health

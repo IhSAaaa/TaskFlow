@@ -1,6 +1,6 @@
 {
   "name": "taskflow",
-  "version": "1.0.0",
+  "version": "1.3.3",
   "description": "Task Management & Collaboration Platform with Microservices Architecture",
   "main": "index.js",
   "scripts": {

@@ -98,6 +98,19 @@ prod: ## Start production environment with ngrok
 		echo "$(RED)[ERROR]$(NC) Docker is not running. Please start Docker first."; \
 		exit 1; \
 	fi
+	@echo "$(BLUE)[INFO]$(NC) Stopping existing containers..."
+	@$(DOCKER_COMPOSE_PROD) --profile ngrok down
+	@echo "$(BLUE)[INFO]$(NC) Building and starting production environment..."
+	@$(DOCKER_COMPOSE_PROD) --profile ngrok up --build -d
+	@echo "$(BLUE)[INFO]$(NC) Waiting for services to be ready..."
+	@sleep 15
+	@echo "$(BLUE)[INFO]$(NC) Getting ngrok URL..."
+	@if [ -f scripts/get-ngrok-url.sh ]; then \
+		chmod +x scripts/get-ngrok-url.sh; \
+		./scripts/get-ngrok-url.sh; \
+	else \
+		echo "$(YELLOW)[WARNING]$(NC) get-ngrok-url.sh script not found. Please manually check ngrok URL at http://localhost:24040"; \
+	fi
 	@echo "$(BLUE)[INFO]$(NC) Checking environment configuration..."
 	@if [ ! -f .env ]; then \
 		echo "$(YELLOW)[INFO]$(NC) .env file not found, creating from template..."; \
@@ -167,10 +180,19 @@ prod: ## Start production environment with ngrok
 	fi
 
 .PHONY: prod-stop
-prod-stop: ## Stop production environment
+prod-stop: ## Stop production environment including ngrok
 	@echo "$(BLUE)[INFO]$(NC) Stopping TaskFlow Production Environment..."
-	@$(DOCKER_COMPOSE_PROD) down
+	@echo "$(BLUE)[INFO]$(NC) Stopping all production services including ngrok..."
+	@$(DOCKER_COMPOSE_PROD) --profile ngrok down
 	@echo "$(GREEN)[SUCCESS]$(NC) Production environment stopped!"
+	@echo "$(BLUE)[INFO]$(NC) All containers including ngrok have been stopped."
+
+.PHONY: ngrok-stop
+ngrok-stop: ## Stop only ngrok tunnel
+	@echo "$(BLUE)[INFO]$(NC) Stopping ngrok tunnel..."
+	@$(DOCKER_COMPOSE_PROD) stop ngrok
+	@echo "$(GREEN)[SUCCESS]$(NC) Ngrok tunnel stopped!"
+	@echo "$(BLUE)[INFO]$(NC) Other production services are still running."
 
 .PHONY: prod-logs
 prod-logs: ## View production logs
@@ -201,6 +223,7 @@ prod-ngrok: ## Start ngrok for production environment
 	@echo "$(GREEN)[SUCCESS]$(NC) Ngrok started!"
 	@echo "$(GREEN)🌍 Ngrok Web Interface:$(NC) http://localhost:24040"
 	@echo "$(BLUE)[INFO]$(NC) Check ngrok web interface for public URL"
+	@echo "$(BLUE)[INFO]$(NC) Run 'make ngrok-url' to get the public URL and update frontend"
 
 .PHONY: dev-interactive
 dev-interactive: ## Start development environment in interactive mode
@@ -211,6 +234,83 @@ dev-interactive: ## Start development environment in interactive mode
 	fi
 	@echo "📦 Building and starting services..."
 	@$(DOCKER_COMPOSE_DEV) up --build
+
+.PHONY: prod-setup
+prod-setup: ## Complete production setup with ngrok integration
+	@echo "$(BLUE)[INFO]$(NC) Setting up complete production environment..."
+	@echo "$(BLUE)[INFO]$(NC) 1. Starting production services..."
+	@$(DOCKER_COMPOSE_PROD) up -d
+	@echo "$(BLUE)[INFO]$(NC) 2. Starting ngrok tunnel..."
+	@$(MAKE) prod-ngrok
+	@echo "$(BLUE)[INFO]$(NC) 3. Getting ngrok URL and updating frontend..."
+	@sleep 15
+	@$(MAKE) ngrok-url
+	@echo "$(GREEN)[SUCCESS]$(NC) Production environment is ready!"
+	@echo "$(GREEN)🎉 Your application is now accessible via ngrok tunnel$(NC)"
+
+.PHONY: prod-restart
+prod-restart: ## Restart production environment and update ngrok URL
+	@echo "$(BLUE)[INFO]$(NC) Restarting production environment..."
+	@echo "$(BLUE)[INFO]$(NC) Stopping all services including ngrok..."
+	@$(DOCKER_COMPOSE_PROD) --profile ngrok down
+	@echo "$(BLUE)[INFO]$(NC) Starting all services including ngrok..."
+	@$(DOCKER_COMPOSE_PROD) --profile ngrok up -d
+	@echo "$(BLUE)[INFO]$(NC) Waiting for services to be ready..."
+	@sleep 15
+	@echo "$(BLUE)[INFO]$(NC) Updating ngrok URL..."
+	@$(MAKE) ngrok-url
+	@echo "$(GREEN)[SUCCESS]$(NC) Production environment restarted!"
+
+.PHONY: prod-status
+prod-status: ## Show production environment status
+	@echo "$(BLUE)[INFO]$(NC) Production Environment Status:"
+	@echo "================================"
+	@echo "$(BLUE)📦 Container Status:$(NC)"
+	@$(DOCKER_COMPOSE_PROD) ps
+	@echo ""
+	@echo "$(BLUE)🌐 Ngrok Status:$(NC)"
+	@if curl -s http://localhost:24040/api/tunnels > /dev/null 2>&1; then \
+		NGROK_URL=$$(curl -s http://localhost:24040/api/tunnels | jq -r '.tunnels[0].public_url'); \
+		if [ "$$NGROK_URL" != "null" ] && [ -n "$$NGROK_URL" ]; then \
+			echo "$(GREEN)✅ Ngrok is running$(NC)"; \
+			echo "$(GREEN)🌍 Public URL: $$NGROK_URL$(NC)"; \
+		else \
+			echo "$(YELLOW)⚠️  Ngrok is running but no tunnel found$(NC)"; \
+		fi; \
+	else \
+		echo "$(RED)❌ Ngrok is not running$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(BLUE)🔗 Service URLs:$(NC)"
+	@echo "$(GREEN)Frontend:$(NC) http://localhost:23000"
+	@echo "$(GREEN)API Gateway:$(NC) http://localhost:28000"
+	@echo "$(GREEN)Ngrok Web Interface:$(NC) http://localhost:24040"
+
+.PHONY: ngrok-url
+ngrok-url: ## Get ngrok URL and update frontend environment
+	@echo "$(BLUE)[INFO]$(NC) Getting ngrok URL and updating frontend..."
+	@if ! curl -s http://localhost:24040/api/tunnels > /dev/null 2>&1; then \
+		echo "$(RED)[ERROR]$(NC) Ngrok is not running. Please start ngrok first with: $(YELLOW)make prod-ngrok$(NC)"; \
+		exit 1; \
+	fi
+	@NGROK_URL=$$(curl -s http://localhost:24040/api/tunnels | jq -r '.tunnels[0].public_url'); \
+	if [ "$$NGROK_URL" != "null" ] && [ -n "$$NGROK_URL" ]; then \
+		echo "$(GREEN)[SUCCESS]$(NC) Ngrok URL: $$NGROK_URL"; \
+		if [ -f .env ]; then \
+			sed -i "s|NGROK_URL=.*|NGROK_URL=$$NGROK_URL|g" .env; \
+			echo "$(GREEN)[SUCCESS]$(NC) Updated .env file with NGROK_URL=$$NGROK_URL"; \
+			echo "$(BLUE)[INFO]$(NC) Restarting frontend container..."; \
+			$(DOCKER_COMPOSE_PROD) restart frontend; \
+			echo "$(GREEN)[SUCCESS]$(NC) Frontend restarted with new NGROK_URL"; \
+			echo "$(GREEN)🌐 Your application is available at: $$NGROK_URL$(NC)"; \
+		else \
+			echo "$(RED)[ERROR]$(NC) .env file not found"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(RED)[ERROR]$(NC) Failed to get ngrok URL"; \
+		exit 1; \
+	fi
 
 .PHONY: prod-interactive
 prod-interactive: ## Start production environment in interactive mode

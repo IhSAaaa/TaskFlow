@@ -229,7 +229,7 @@ services:
       dockerfile: Dockerfile
     container_name: taskflow-frontend-prod
     environment:
-      VITE_API_URL: http://localhost:28000
+      VITE_API_URL: ${NGROK_URL:-http://localhost:28000}
     ports:
       - "23000:3000"
     depends_on:
@@ -240,9 +240,7 @@ services:
 
   # Ngrok for exposing the application (only if NGROK_AUTHTOKEN is set)
   ngrok:
-    build:
-      context: .
-      dockerfile: Dockerfile.ngrok
+    image: ngrok/ngrok:latest
     container_name: taskflow-ngrok
     ports:
       - "24040:4040"  # Ngrok web interface
@@ -250,9 +248,12 @@ services:
       - frontend
     networks:
       - taskflow-network
-    restart: unless-stopped
+    restart: "no"  # Don't auto-restart to avoid conflicts
     profiles:
       - ngrok
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: http frontend:3000
 
 volumes:
   postgres_data:

@@ -51,7 +51,6 @@ const authRateLimiter = createRateLimiter({
 app.use(helmet());
 app.use(cors());
 app.use(morgan('combined'));
-app.use(express.json());
 app.use(securityHeaders);
 app.use(sanitizeInput);
 app.use(requestLogger);
@@ -75,6 +74,8 @@ app.use('/api/auth', createProxyMiddleware({
   pathRewrite: {
     '^/api/auth': '/api/auth'
   },
+  timeout: 30000, // 30 seconds timeout
+  proxyTimeout: 30000, // 30 seconds proxy timeout
   onError: (err, req, res) => {
     logger.error('Auth service proxy error:', err);
     res.status(503).json({
@@ -90,6 +91,8 @@ app.use('/api/users', createProxyMiddleware({
   pathRewrite: {
     '^/api/users': '/api/users'
   },
+  timeout: 30000,
+  proxyTimeout: 30000,
   onError: (err, req, res) => {
     logger.error('User service proxy error:', err);
     res.status(503).json({

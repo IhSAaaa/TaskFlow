@@ -1,5 +1,64 @@
 # Changelog
 
+## [1.3.3] - 2025-01-27
+
+### 📝 Documentation Updates
+- **Synchronized package.json version** from 1.0.0 to 1.3.2 to match changelog
+- **Updated README.md** with current port configurations (PostgreSQL: 25432, Redis: 26379)
+- **Added service ports section** to Quick Start guide for better clarity
+- **Enhanced infrastructure services documentation** with proper port mappings
+- **Improved development setup instructions** with current port references
+- **Updated backend/README.md** with correct API Gateway port (28000)
+- **Fixed docs/development.md** with updated port references (Frontend: 23000, API Gateway: 28000)
+- **Updated docs/deployment.md** with current port configurations
+- **Corrected all curl examples** to use proper port numbers
+
+### 🔧 Version Synchronization
+- **Fixed version mismatch** between package.json and CHANGELOG.md
+- **Updated package.json version** to reflect current stable release
+- **Maintained consistency** across all documentation files
+
+### 📊 Documentation Improvements
+- **Added infrastructure services section** in README architecture overview
+- **Updated service ports** in Quick Start guide for PostgreSQL and Redis
+- **Enhanced Docker setup documentation** with current port configurations
+- **Improved user experience** with clearer port references
+
+## [1.3.2] - 2025-07-26
+
+### 🔧 API Gateway Connection Fix
+- **Fixed API Gateway proxy connection issues** that were causing "Empty reply from server" errors
+- **Resolved ECONNRESET errors** in API Gateway when forwarding requests to auth service
+- **Fixed request body parsing conflicts** between express.json() middleware and proxy middleware
+- **Enhanced auth service request handling** with proper body size limits and error handling
+- **Improved API Gateway proxy configuration** for better request forwarding
+
+### 🐛 Bug Fixes
+- **Fixed**: API Gateway returning "Empty reply from server" for POST requests
+- **Fixed**: ECONNRESET errors when proxying requests to auth service
+- **Fixed**: Request body being consumed by express.json() before proxy forwarding
+- **Fixed**: Auth service request abort errors during body parsing
+- **Improved**: Error handling in auth service for malformed requests
+
+### 🔧 Technical Improvements
+- **Removed express.json() middleware** from API Gateway to prevent request body consumption
+- **Added request body size limits** to auth service (10mb limit)
+- **Enhanced auth service middleware** with proper error handling
+- **Improved proxy timeout configuration** in API Gateway
+- **Added comprehensive logging** for debugging connection issues
+
+### 📊 Impact Analysis
+- **Root Cause**: API Gateway was consuming request body with express.json() before proxy could forward it
+- **Solution**: Removed conflicting middleware and enhanced auth service configuration
+- **Result**: All API endpoints now work correctly through the gateway
+- **Testing**: Verified register endpoint functionality with proper error messages
+
+### 🔍 Technical Details
+- **API Gateway**: Removed express.json() middleware that was interfering with proxy forwarding
+- **Auth Service**: Added express.json({ limit: '10mb' }) and express.urlencoded() middleware
+- **Request Flow**: Now properly forwards complete request body to auth service
+- **Error Handling**: Improved error messages for missing required fields (firstName, lastName, tenantId)
+
 ## [1.3.1] - 2025-07-26
 
 ### 🔧 Database Connection Fix

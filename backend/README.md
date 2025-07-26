@@ -374,7 +374,7 @@ TENANT_SERVICE_URL=http://tenant-service:3006
 
 All services provide health check endpoints:
 
-- **API Gateway**: `http://localhost:8000/health`
+- **API Gateway**: `http://localhost:28000/health`
 - **Auth Service**: `http://localhost:3001/health`
 - **User Service**: `http://localhost:3002/health`
 - **Task Service**: `http://localhost:3003/health`
@@ -388,17 +388,17 @@ All services provide health check endpoints:
 
 ```bash
 # Test health endpoints
-curl http://localhost:8000/health
+curl http://localhost:28000/health
 
 # Test task creation
-curl -X POST http://localhost:8000/api/tasks \
+curl -X POST http://localhost:28000/api/tasks \
   -H "Content-Type: application/json" \
   -H "x-tenant-id: 550e8400-e29b-41d4-a716-446655440000" \
   -H "x-user-id: 550e8400-e29b-41d4-a716-446655440001" \
   -d '{"title":"Test Task","project_id":"project-uuid"}'
 
 # Test project listing
-curl http://localhost:8000/api/projects \
+curl http://localhost:28000/api/projects \
   -H "x-tenant-id: 550e8400-e29b-41d4-a716-446655440000"
 ```
 
@@ -507,7 +507,7 @@ psql -h localhost -U postgres -d taskflow
 #### Health Check Issues
 ```bash
 # Test health endpoints
-curl http://localhost:8000/health
+curl http://localhost:28000/health
 curl http://localhost:3001/health
 ```
 

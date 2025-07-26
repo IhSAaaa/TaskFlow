@@ -41,7 +41,7 @@ docker-compose logs -f
 ### 3. Verify Setup
 ```bash
 # Check API Gateway health
-curl http://localhost:8000/health
+curl http://localhost:28000/health
 
 # Check individual services
 curl http://localhost:3001/health  # Auth Service
@@ -53,9 +53,9 @@ curl http://localhost:3006/health  # Tenant Service
 ```
 
 ### 4. Access Application
-- **Frontend**: http://localhost:3000
-- **API Gateway**: http://localhost:8000
-- **Health Dashboard**: http://localhost:8000/health
+- **Frontend**: http://localhost:23000
+- **API Gateway**: http://localhost:28000
+- **Health Dashboard**: http://localhost:28000/health
 
 ## Manual Development Setup
 
@@ -114,7 +114,7 @@ npm install
 2. **Environment Configuration**
 ```bash
 # Create .env file
-echo "VITE_API_URL=http://localhost:8000" > .env
+echo "VITE_API_URL=http://localhost:28000" > .env
 ```
 
 3. **Start Development Server**
@@ -123,7 +123,7 @@ npm run dev
 ```
 
 4. **Access Frontend**
-- Open http://localhost:3000 in your browser
+- Open http://localhost:23000 in your browser
 
 ## Environment Configuration
 
@@ -158,7 +158,7 @@ JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # Security
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:23000
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 
@@ -169,7 +169,7 @@ LOG_LEVEL=info
 ### Frontend Environment Variables
 ```bash
 # frontend/.env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:28000
 VITE_NOTIFICATION_URL=http://localhost:3005
 ```
 
@@ -180,7 +180,7 @@ All services provide health check endpoints:
 
 ```bash
 # API Gateway
-curl http://localhost:8000/health
+curl http://localhost:28000/health
 
 # Individual Services
 curl http://localhost:3001/health  # Auth Service
@@ -243,12 +243,12 @@ npm run test:coverage
 ### API Testing
 ```bash
 # Test authentication
-curl -X POST http://localhost:8000/api/auth/register \
+curl -X POST http://localhost:28000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email": "test@example.com", "password": "password123", "firstName": "John", "lastName": "Doe"}'
 
 # Test task creation
-curl -X POST http://localhost:8000/api/tasks \
+curl -X POST http://localhost:28000/api/tasks \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{"title": "Test Task", "description": "Test Description", "projectId": "project-uuid"}'
